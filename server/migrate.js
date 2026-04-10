@@ -82,7 +82,11 @@ async function runMigrations() {
 
     for (const sql of syncPatches) {
       try {
-        await db.query(sql);
+        const res = await db.query(sql);
+        // Si el query fue exitoso, es probable que se haya añadido la columna
+        if (res.command === 'ALTER') {
+           console.log(`[MIGRACIÓN] Aplicado: ${sql.substring(0, 50)}...`);
+        }
       } catch (err) {
         // Ignorar errores si la columna ya existe o errores menores
         if (!err.message.includes('already exists')) {
