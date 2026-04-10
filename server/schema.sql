@@ -262,10 +262,52 @@ CREATE TABLE IF NOT EXISTS typing (
     PRIMARY KEY (chat_id, user_id)
 );
 
--- Índices adicionales
-CREATE INDEX IF NOT EXISTS idx_comments_target ON comments(target_id);
-CREATE INDEX IF NOT EXISTS idx_events_start ON events(start_time);
-CREATE INDEX IF NOT EXISTS idx_presence_status ON presence(status);
-CREATE INDEX IF NOT EXISTS idx_messages_chat_id ON messages(chat_id);
+-- Tablas de perfiles y usuarios
+-- (Ya existen, solo nos aseguramos de las columnas)
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'estudiante';
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Noticias
+ALTER TABLE news ADD COLUMN IF NOT EXISTS author_id UUID;
+ALTER TABLE news ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE news ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE news ADD COLUMN IF NOT EXISTS read_by UUID[] DEFAULT '{}';
+ALTER TABLE news ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+ALTER TABLE news ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0;
+
+-- Foro
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS read_by UUID[] DEFAULT '{}';
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+ALTER TABLE forum ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0;
+
+-- Comentarios
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id UUID;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_type TEXT; -- 'news', 'forum', 'activity', etc.
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_photo TEXT;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id UUID;
+
+-- Feedback
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_name TEXT;
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_photo TEXT;
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS attachments TEXT[] DEFAULT '{}';
+
+-- Eventos (Sincronizar campos)
+ALTER TABLE events ADD COLUMN IF NOT EXISTS date TIMESTAMPTZ; -- Alias de start_date para compatibilidad
+ALTER TABLE events ADD COLUMN IF NOT EXISTS type TEXT;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+
+-- Configuraciones de Calificación
+ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS teacher_id UUID;
+
+-- Actividades
+ALTER TABLE activities ADD COLUMN IF NOT EXISTS manual_access TEXT DEFAULT 'false'; -- Cambiado a TEXT porque el log muestra que se envía 'auto'
 CREATE INDEX IF NOT EXISTS idx_submissions_activity ON submissions(activity_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);

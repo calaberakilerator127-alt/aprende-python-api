@@ -178,7 +178,7 @@ const ALLOWED_TABLES = [
 ];
 
 // Tablas que NO tienen la columna 'created_at' (para evitar errores de ordenamiento)
-const TABLES_WITHOUT_CREATED_AT = ['settings', 'typing', 'presence'];
+const TABLES_WITHOUT_CREATED_AT = ['typing', 'presence'];
 
 // Ayudante para emitir cambios vía Sockets
 const broadcastChange = (table, eventType, data, oldData = null) => {
