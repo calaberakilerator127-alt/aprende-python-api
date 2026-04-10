@@ -43,6 +43,16 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Ruta de Salud (Para verificar si el servidor y la DB están vivos)
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ status: 'ok', database: 'connected', timestamp: new Date() });
+  } catch (err) {
+    res.status(500).json({ status: 'error', database: err.message });
+  }
+});
+
 // Carpeta para subida de archivos
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -335,6 +345,19 @@ io.on('connection', (socket) => {
         console.error('Error al desconectar presencia:', err);
       }
     }
+  });
+});
+
+// --- MANEJADOR DE ERRORES GLOBAL (Último recurso) ---
+app.use((err, req, res, next) => {
+  console.error('CRITICAL SERVER ERROR:', err);
+  // Asegurar cabeceras CORS incluso en errores catastróficos
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(500).json({ 
+    error: 'Error crítico en el servidor',
+    message: err.message,
+    path: req.url
   });
 });
 
