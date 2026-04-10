@@ -15,7 +15,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) {
+      const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+      if (!origin || allowedPatterns.some(pattern => pattern.test(origin))) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -31,14 +32,19 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// Middleware de CORS robusto (Reemplaza el manual anterior)
+// Middleware de CORS robusto con logs detallados
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir Vercel, localhost y clientes sin Origin (herramientas/móviles)
-    if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) {
+    // Permitir Vercel, localhost y clientes sin Origin
+    const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+    const isAllowed = !origin || allowedPatterns.some(pattern => pattern.test(origin));
+    
+    console.log(`[CORS] Request from: ${origin || 'no-origin'} - Allowed: ${isAllowed}`);
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
-      console.warn(`CORS BLOQUEADO para origen: ${origin}`);
+      console.warn(`[CORS REJECTED] Origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -53,7 +59,13 @@ app.use(express.json());
 app.get('/api/health', async (req, res) => {
   try {
     await db.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected', timestamp: new Date() });
+    res.json({ 
+      status: 'ok', 
+      version: '1.0.4',
+      database: 'connected', 
+      timestamp: new Date(),
+      headers: req.headers // Útil para depurar origin
+    });
   } catch (err) {
     res.status(500).json({ status: 'error', database: err.message });
   }
