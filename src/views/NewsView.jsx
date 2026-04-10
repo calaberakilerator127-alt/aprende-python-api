@@ -95,8 +95,8 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
     const fieldToAdd = isLike ? 'likes' : 'dislikes';
     const fieldToRemove = isLike ? 'dislikes' : 'likes';
     
-    const currentAddList = item[fieldToAdd] || [];
-    const currentRemoveList = item[fieldToRemove] || [];
+    const currentAddList = Array.isArray(item[fieldToAdd]) ? item[fieldToAdd] : [];
+    const currentRemoveList = Array.isArray(item[fieldToRemove]) ? item[fieldToRemove] : [];
     
     const isActive = currentAddList.includes(profile.id);
     let newAddList = isActive 
@@ -115,7 +115,7 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
   const handleRead = async (id) => {
     try {
       const item = news.find(n => n.id === id);
-      const currentReadBy = item?.read_by || [];
+      const currentReadBy = Array.isArray(item?.read_by) ? item.read_by : [];
       if (!currentReadBy.includes(profile.id)) {
         const newReadBy = [...currentReadBy, profile.id];
         updateOptimistic('news', id, { read_by: newReadBy });
@@ -125,7 +125,7 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
   };
 
   const sortedNews = [...news].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const unreadCount = sortedNews.filter(n => !n.read_by?.includes(profile.id)).length;
+  const unreadCount = sortedNews.filter(n => !(Array.isArray(n.read_by) ? n.read_by : []).includes(profile.id)).length;
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
@@ -216,9 +216,9 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
           </div>
         ) : (
           sortedNews.map(item => {
-            const isUnread = !item.read_by?.includes(profile.id);
-            const hasLiked = item.likes?.includes(profile.id);
-            const hasDisliked = item.dislikes?.includes(profile.id);
+            const isUnread = !(Array.isArray(item.read_by) ? item.read_by : []).includes(profile.id);
+            const hasLiked = (Array.isArray(item.likes) ? item.likes : []).includes(profile.id);
+            const hasDisliked = (Array.isArray(item.dislikes) ? item.dislikes : []).includes(profile.id);
             return (
               <div key={item.id} className={`glass-card p-6 md:p-8 rounded-[2.5rem] shadow-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden group ${isUnread ? 'border-indigo-200 dark:border-indigo-800/60' : 'border-gray-100 dark:border-slate-700/50'}`}>
                 <div className={`absolute top-0 left-0 w-1.5 h-full transition-all group-hover:w-2.5 ${isUnread ? 'bg-gradient-to-b from-indigo-500 to-purple-600' : 'bg-gray-200 dark:bg-slate-700'}`}></div>
@@ -252,10 +252,10 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-gray-100 dark:border-slate-700/50 pt-5">
                      <div className="flex items-center gap-3">
                         <button onClick={() => handleLike(item, true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border focus-visible:ring-inset hover-spring ${hasLiked ? 'bg-indigo-600 text-white border-indigo-700 shadow-indigo-500/20' : 'text-gray-500 hover:text-indigo-600 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-indigo-300'}`}>
-                          <ThumbsUp size={16} /> {item.likes?.length || 0}
+                          <ThumbsUp size={16} /> {Array.isArray(item.likes) ? item.likes.length : 0}
                         </button>
                         <button onClick={() => handleLike(item, false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border focus-visible:ring-inset hover-spring ${hasDisliked ? 'bg-red-500 text-white border-red-600 shadow-red-500/20' : 'text-gray-500 hover:text-red-500 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-red-300'}`}>
-                          <ThumbsDown size={16} /> {item.dislikes?.length || 0}
+                          <ThumbsDown size={16} /> {Array.isArray(item.dislikes) ? item.dislikes.length : 0}
                         </button>
                      </div>
                      {isUnread && (

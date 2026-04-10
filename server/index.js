@@ -7,7 +7,6 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./db');
 const auth = require('./auth');
-const runMigrations = require('./migrate');
 require('dotenv').config({ path: '../.env.server' });
 
 const app = express();
@@ -25,11 +24,24 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// Middleware de CORS robusto con logs detallados
+// Middleware de CORS robusto
+const allowedOrigins = [
+  'https://aprende-python-theta.vercel.app',
+  'https://aprende-python.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: 'https://aprende-python-theta.vercel.app',
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origen (como apps móviles o curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    callback(new Error('No permitido por CORS'));
+  },
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   optionsSuccessStatus: 200
 }));
@@ -461,6 +473,8 @@ app.use((err, req, res, next) => {
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-requested-with, Accept');
   }
 
   res.status(err.status || 500).json({ 
@@ -482,14 +496,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Arrancar servidor
 async function startServer() {
   console.log('Iniciando servidor...');
-  try {
-    // 1. Ejecutar migraciones antes de aceptar tráfico
-    await runMigrations();
-  } catch (err) {
-    console.error('ERROR EN MIGRACIONES:', err.message);
-    // Continuamos el arranque incluso si falla la migración para no quedar offline
-  }
-
+  
   server.listen(PORT, () => {
     console.log(`Servidor API & Realtime corriendo en http://localhost:${PORT}`);
   });

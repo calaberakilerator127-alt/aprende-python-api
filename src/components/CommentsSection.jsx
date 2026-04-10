@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { Clock, Edit2, Trash2, ThumbsUp, ThumbsDown, MessageCircle, Send, Check, CornerDownRight } from 'lucide-react';
 import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 
@@ -137,8 +139,8 @@ export default function CommentsSection({ parentId, parentType, profile, comment
   const handleLike = async (c, isLike) => {
     const fieldToAdd = isLike ? 'likes' : 'dislikes';
     const fieldToRemove = isLike ? 'dislikes' : 'likes';
-    const currentAddList = c[fieldToAdd] || [];
-    const currentRemoveList = c[fieldToRemove] || [];
+    const currentAddList = Array.isArray(c[fieldToAdd]) ? c[fieldToAdd] : [];
+    const currentRemoveList = Array.isArray(c[fieldToRemove]) ? c[fieldToRemove] : [];
     
     const isActive = currentAddList.includes(profile.id);
     let newAddList = isActive 
@@ -202,11 +204,11 @@ export default function CommentsSection({ parentId, parentType, profile, comment
           
           <div className="flex items-center gap-6 px-4">
              <div className="flex items-center gap-3">
-               <button onClick={() => handleLike(c, true)} className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all p-1.5 rounded-xl hover-spring ${c.likes?.includes(profile.id) ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/40' : 'text-gray-400 hover:text-indigo-500'}`}>
-                  <ThumbsUp size={14} /> {c.likes?.length || 0}
+               <button onClick={() => handleLike(c, true)} className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all p-1.5 rounded-xl hover-spring ${(Array.isArray(c.likes) ? c.likes : []).includes(profile.id) ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/40' : 'text-gray-400 hover:text-indigo-500'}`}>
+                  <ThumbsUp size={14} /> {Array.isArray(c.likes) ? c.likes.length : 0}
                </button>
-               <button onClick={() => handleLike(c, false)} className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all p-1.5 rounded-xl hover-spring ${c.dislikes?.includes(profile.id) ? 'text-red-600 bg-red-50 dark:bg-red-900/40' : 'text-gray-400 hover:text-red-500'}`}>
-                  <ThumbsDown size={14} /> {c.dislikes?.length || 0}
+               <button onClick={() => handleLike(c, false)} className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all p-1.5 rounded-xl hover-spring ${(Array.isArray(c.dislikes) ? c.dislikes : []).includes(profile.id) ? 'text-red-600 bg-red-50 dark:bg-red-900/40' : 'text-gray-400 hover:text-red-500'}`}>
+                  <ThumbsDown size={14} /> {Array.isArray(c.dislikes) ? c.dislikes.length : 0}
                </button>
              </div>
              {!isReply && (

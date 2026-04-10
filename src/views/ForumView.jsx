@@ -120,8 +120,8 @@ export default function ForumView({ profile, users, forum, showToast, comments =
   const handleLike = async (item, isLike) => {
     const fieldToAdd = isLike ? 'likes' : 'dislikes';
     const fieldToRemove = isLike ? 'dislikes' : 'likes';
-    const currentAddList = item[fieldToAdd] || [];
-    const currentRemoveList = item[fieldToRemove] || [];
+    const currentAddList = Array.isArray(item[fieldToAdd]) ? item[fieldToAdd] : [];
+    const currentRemoveList = Array.isArray(item[fieldToRemove]) ? item[fieldToRemove] : [];
     
     const isActive = currentAddList.includes(profile.id);
     let newAddList = isActive 
@@ -142,7 +142,7 @@ export default function ForumView({ profile, users, forum, showToast, comments =
   const handleRead = async (id) => {
     try {
       const post = forum.find(p => p.id === id);
-      const currentReadBy = post?.read_by || [];
+      const currentReadBy = Array.isArray(post?.read_by) ? post.read_by : [];
       if (!currentReadBy.includes(profile.id)) {
         const newReadBy = [...currentReadBy, profile.id];
         updateOptimistic('forum', id, { read_by: newReadBy });
@@ -281,7 +281,7 @@ export default function ForumView({ profile, users, forum, showToast, comments =
           </div>
         ) : (
           filteredPosts.map(post => {
-            const isUnread = !post.read_by?.includes(profile.id);
+            const isUnread = !(Array.isArray(post.read_by) ? post.read_by : []).includes(profile.id);
             const isExpanded = expandedPosts[post.id];
             const catInfo = CATEGORIES[post.category] || CATEGORIES.académico;
             return (
@@ -327,11 +327,11 @@ export default function ForumView({ profile, users, forum, showToast, comments =
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-gray-100 dark:border-slate-700/50 pt-5 mt-5">
                     <div className="flex items-center gap-3 flex-wrap">
-                       <button onClick={() => handleLike(post, true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${post.likes?.includes(profile.id) ? 'bg-purple-600 text-white border-purple-700 shadow-purple-500/20' : 'text-gray-500 hover:text-purple-600 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-purple-300'}`}>
-                         <ThumbsUp size={16} /> {post.likes?.length || 0}
+                       <button onClick={() => handleLike(post, true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${(Array.isArray(post.likes) ? post.likes : []).includes(profile.id) ? 'bg-purple-600 text-white border-purple-700 shadow-purple-500/20' : 'text-gray-500 hover:text-purple-600 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-purple-300'}`}>
+                         <ThumbsUp size={16} /> {Array.isArray(post.likes) ? post.likes.length : 0}
                        </button>
-                       <button onClick={() => handleLike(post, false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${post.dislikes?.includes(profile.id) ? 'bg-red-500 text-white border-red-600 shadow-red-500/20' : 'text-gray-500 hover:text-red-500 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-red-300'}`}>
-                         <ThumbsDown size={16} /> {post.dislikes?.length || 0}
+                       <button onClick={() => handleLike(post, false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${(Array.isArray(post.dislikes) ? post.dislikes : []).includes(profile.id) ? 'bg-red-500 text-white border-red-600 shadow-red-500/20' : 'text-gray-500 hover:text-red-500 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-red-300'}`}>
+                         <ThumbsDown size={16} /> {Array.isArray(post.dislikes) ? post.dislikes.length : 0}
                        </button>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">

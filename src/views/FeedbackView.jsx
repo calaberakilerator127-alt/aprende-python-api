@@ -49,7 +49,7 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
     if (sortBy === 'recent') {
       result.sort((a, b) => (new Date(b.created_at || 0)) - (new Date(a.created_at || 0)));
     } else {
-      result.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+      result.sort((a, b) => ((Array.isArray(b.likes) ? b.likes : []).length) - ((Array.isArray(a.likes) ? a.likes : []).length));
     }
     return result;
   }, [feedback, filterCategory, filterStatus, sortBy]);
@@ -106,10 +106,11 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
   };
 
   const handleLike = async (report) => {
-    const isLiked = report.likes?.includes(profile.id);
+    const currentLikes = Array.isArray(report.likes) ? report.likes : [];
+    const isLiked = currentLikes.includes(profile.id);
     const newLikes = isLiked 
-      ? report.likes.filter(id => id !== profile.id)
-      : [...(report.likes || []), profile.id];
+      ? currentLikes.filter(id => id !== profile.id)
+      : [...currentLikes, profile.id];
 
     updateOptimistic('feedback', report.id, { likes: newLikes });
 
@@ -319,8 +320,8 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
                  )}
                  <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5 text-gray-400">
-                    <ThumbsUp size={14} className={report.likes?.includes(profile.id) ? 'text-indigo-600' : ''} />
-                    <span className="text-xs font-black">{report.likes?.length || 0}</span>
+                    <ThumbsUp size={14} className={(Array.isArray(report.likes) ? report.likes : []).includes(profile.id) ? 'text-indigo-600' : ''} />
+                    <span className="text-xs font-black">{(Array.isArray(report.likes) ? report.likes : []).length}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-gray-400">
                     <MessageCircle size={14} />
@@ -489,9 +490,9 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
                   <div className="flex items-center gap-6 pt-6">
                     <button 
                       onClick={() => handleLike(selectedReport)}
-                      className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${selectedReport.likes?.includes(profile.id) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-gray-100 dark:bg-slate-900 text-gray-500 hover:bg-indigo-50'}`}
+                      className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${(Array.isArray(selectedReport.likes) ? selectedReport.likes : []).includes(profile.id) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-gray-100 dark:bg-slate-900 text-gray-500 hover:bg-indigo-50'}`}
                     >
-                      <ThumbsUp size={18} /> {selectedReport.likes?.length || 0} {t('likes')}
+                      <ThumbsUp size={18} /> {Array.isArray(selectedReport.likes) ? selectedReport.likes.length : 0} {t('likes')}
                     </button>
                     <div className="flex items-center gap-2 text-gray-400 text-xs font-black uppercase tracking-widest">
                        <MessageCircle size={18} /> {comments.filter(c => c.parent_id === selectedReport.id).length} {t('comments')}
