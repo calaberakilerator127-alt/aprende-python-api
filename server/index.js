@@ -30,18 +30,26 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// Middleware de diagnóstico para ver qué llega al servidor
+// Middleware de CORS Manual y Diagnóstico (Super-robusto)
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  const origin = req.header('Origin');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, x-supabase-auth, apikey');
+  
+  // Registrar peticiones para depuración
+  console.log(`${req.method} ${req.url} - Origin: ${origin}`);
+
+  // Responder inmediatamente a Preflights (OPTIONS)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
   next();
 });
 
-app.use(cors({
-  origin: true, // Refleja el origen de la petición automáticamente (muy útil para depurar)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 app.use(express.json());
 
 // Ruta de Salud (Para verificar si el servidor y la DB están vivos)
@@ -167,46 +175,48 @@ app.get('/api/auth/me', auth.verifyToken, async (req, res) => {
   }
 });
 
-// --- SISTEMA CRUD GENÉRICO (Reemplazo de Supabase Client) ---
-
-// Tablas permitidas para operaciones directas (Whitelist)
+// --- SISTEMA CRUD GENÉRICO (Lista Blanca)
 const ALLOWED_TABLES = [
-  'activities', 'submissions', 'materials', 'events', 'notifications',
-  'call_logs', 'attendance', 'news', 'forum', 'comments',
-  'saved_codes', 'saved_notes', 'feedback', 'changelog', 'grading_configs',
-  'messages', 'groups', 'settings', 'profiles', 'content_reads', 'presence',
-  'typing'
+  'profiles', 'settings', 'news', 'changelog', 'forum', 'comments',
+  'saved_codes', 'saved_notes', 'feedback', 'grading_configs', 'events',
+  'call_logs', 'attendance', 'content_reads', 'presence', 'typing',
+  'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
 ];
-
-// Tablas que NO tienen la columna 'created_at' (para evitar errores de ordenamiento)
-const TABLES_WITHOUT_CREATED_AT = ['typing', 'presence'];
 
 // Ayudante para emitir cambios vía Sockets
 const broadcastChange = (table, eventType, data, oldData = null) => {
-  io.emit('db_change', { table, eventType, new: data, old: oldData });
+  io.emit('db_change', {
+    table,
+    type: eventType,
+    data,
+    oldData
+  });
 };
 
-// GET - Listar registros de una tabla
-app.get('/api/data/:table', auth.verifyToken, async (req, res) => {
+// --- ROUTES ---
+
+// CRUD Genérico (Reemplaza múltiples endpoints específicos)
+app.get('/api/data/:table', async (req, res) => {
   const { table } = req.params;
-  if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
+  
+  if (!ALLOWED_TABLES.includes(table)) {
+    return res.status(403).json({ error: 'Tabla no permitida' });
+  }
 
   try {
-    // Ordenar por created_at si la tabla lo permite
-    let query = `SELECT * FROM ${table}`;
-    if (!TABLES_WITHOUT_CREATED_AT.includes(table)) {
-      query += ` ORDER BY created_at DESC`;
-    }
+    let query = `SELECT * FROM "${table}"`;
     
-    const { rows } = await db.query(query);
-    res.json(rows);
+    // Todas las tablas ahora tienen created_at gracias al migrador
+    query += ` ORDER BY created_at DESC`;
+    
+    // Opcional: Límite por defecto para evitar sobrecarga
+    query += ` LIMIT 1000`;
+
+    const result = await db.query(query);
+    res.json(result.rows);
   } catch (err) {
     console.error(`Error en GET /api/data/${table}:`, err.message);
-    res.status(500).json({ 
-      error: `Error obteniendo datos de ${table}`, 
-      message: err.message,
-      detail: err.detail 
-    });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -349,22 +359,37 @@ io.on('connection', (socket) => {
   });
 });
 
-// --- MANEJADOR DE ERRORES GLOBAL (Último recurso) ---
+// --- MANEJADOR DE ERRORES GLOBAL ---
 app.use((err, req, res, next) => {
   console.error('CRITICAL SERVER ERROR:', err);
-  // Asegurar cabeceras CORS incluso en errores catastróficos
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.status(500).json({ 
     error: 'Error crítico en el servidor',
-    message: err.message,
-    path: req.url
+    message: err.message
   });
+});
+
+// Evitar que el proceso muera por errores no capturados (Previene 502 Bad Gateway)
+process.on('uncaughtException', (err) => {
+  console.error('EXCEPCIÓN NO CAPTURADA:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('PROMESA NO GESTIONADA:', reason);
 });
 
 // Arrancar servidor
 async function startServer() {
-  await runMigrations();
+  console.log('Iniciando servidor...');
+  try {
+    // 1. Ejecutar migraciones antes de aceptar tráfico
+    await runMigrations();
+  } catch (err) {
+    console.error('ERROR EN MIGRACIONES:', err.message);
+    // Continuamos el arranque incluso si falla la migración para no quedar offline
+  }
+
   server.listen(PORT, () => {
     console.log(`Servidor API & Realtime corriendo en http://localhost:${PORT}`);
   });
