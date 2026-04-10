@@ -6,7 +6,7 @@ import {
   ShieldCheck, Eye, X, AlertTriangle, Video, Phone, ExternalLink, Pin, Edit3, RefreshCw, HardDrive, Download
 } from 'lucide-react';
 import { useAppAuth } from './hooks/useAppAuth';
-import { useSupabaseData } from './hooks/useSupabaseData';
+import { useAppData } from './hooks/useAppData';
 import { usePresence } from './hooks/usePresence';
 import { useSound } from './hooks/useSound';
 import { useSettings } from './hooks/SettingsContext';
