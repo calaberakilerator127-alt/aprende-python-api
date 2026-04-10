@@ -149,8 +149,12 @@ const ALLOWED_TABLES = [
   'activities', 'submissions', 'materials', 'events', 'notifications',
   'call_logs', 'attendance', 'news', 'forum', 'comments',
   'saved_codes', 'saved_notes', 'feedback', 'changelog', 'grading_configs',
-  'messages', 'groups', 'settings', 'profiles', 'content_reads', 'presence'
+  'messages', 'groups', 'settings', 'profiles', 'content_reads', 'presence',
+  'typing'
 ];
+
+// Tablas que NO tienen la columna 'created_at' (para evitar errores de ordenamiento)
+const TABLES_WITHOUT_CREATED_AT = ['settings', 'typing', 'presence'];
 
 // Ayudante para emitir cambios vía Sockets
 const broadcastChange = (table, eventType, data, oldData = null) => {
@@ -163,12 +167,12 @@ app.get('/api/data/:table', auth.verifyToken, async (req, res) => {
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
   try {
-    // Verificar si la tabla tiene created_at antes de ordenar
-    const hasCreatedAt = !['settings', 'typing'].includes(table);
-    const query = hasCreatedAt 
-      ? `SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`
-      : `SELECT * FROM ${table} LIMIT 500`;
-      
+    // Ordenar por created_at si la tabla lo permite
+    let query = `SELECT * FROM ${table}`;
+    if (!TABLES_WITHOUT_CREATED_AT.includes(table)) {
+      query += ` ORDER BY created_at DESC`;
+    }
+    
     const { rows } = await db.query(query);
     res.json(rows);
   } catch (err) {
