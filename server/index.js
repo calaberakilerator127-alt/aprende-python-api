@@ -28,23 +28,18 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
-const allowedOrigins = [
-  'https://aprende-python-theta.vercel.app',
-  'http://localhost:5173'
-];
+
+// Middleware de diagnóstico para ver qué llega al servidor
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  next();
+});
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir si no hay origen (como apps móviles o curl) o si coincide con la lista/regla
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      console.warn('CORS bloqueado para el origen:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Refleja el origen de la petición automáticamente (muy útil para depurar)
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
