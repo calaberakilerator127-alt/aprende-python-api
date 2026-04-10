@@ -13,8 +13,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*', // En producción, limita esto al dominio de tu frontend
+    origin: ['https://aprende-python-theta.vercel.app', 'https://aprende-python-4s3yqy59o-isgosk127-2503s-projects.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
   }
 });
 
@@ -148,7 +149,7 @@ const ALLOWED_TABLES = [
   'activities', 'submissions', 'materials', 'events', 'notifications',
   'call_logs', 'attendance', 'news', 'forum', 'comments',
   'saved_codes', 'saved_notes', 'feedback', 'changelog', 'grading_configs',
-  'messages', 'groups', 'settings', 'profiles'
+  'messages', 'groups', 'settings', 'profiles', 'content_reads', 'presence'
 ];
 
 // Ayudante para emitir cambios vía Sockets
