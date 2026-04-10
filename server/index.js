@@ -21,7 +21,11 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
-app.use(cors());
+app.use(cors({
+  origin: ['https://aprende-python-theta.vercel.app', 'https://aprende-python-psg1yht1h-isgosk127-2503s-projects.vercel.app'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Carpeta para subida de archivos
@@ -158,10 +162,16 @@ app.get('/api/data/:table', auth.verifyToken, async (req, res) => {
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
   try {
-    const query = `SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`;
+    // Verificar si la tabla tiene created_at antes de ordenar
+    const hasCreatedAt = !['settings', 'typing'].includes(table);
+    const query = hasCreatedAt 
+      ? `SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`
+      : `SELECT * FROM ${table} LIMIT 500`;
+      
     const { rows } = await db.query(query);
     res.json(rows);
   } catch (err) {
+    console.error(`Error en GET /api/data/${table}:`, err);
     res.status(500).json({ error: `Error obteniendo datos de ${table}` });
   }
 });

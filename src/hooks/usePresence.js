@@ -13,7 +13,7 @@ export function usePresence(user, profile) {
     // Función auxiliar para actualizar la DB vía API
     const updateDBStatus = async (status) => {
       try {
-        await api.put(`/api/data/profiles/${userId}`, {
+        await api.put(`/data/profiles/${userId}`, {
           status: status,
           last_seen: new Date().toISOString()
         });
