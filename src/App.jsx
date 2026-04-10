@@ -49,7 +49,7 @@ export default function App() {
     comments, savedCodes, savedNotes, feedback, changelog, gradingConfigs, 
     fetchFullRecord, addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic,
     globalMessages
-  } = useSupabaseData(user);
+  } = useAppData(user);
 
   const { t, language, notificationsEnabled, soundSettings, soundsEnabled } = useSettings();
   const { playSound } = useSound();

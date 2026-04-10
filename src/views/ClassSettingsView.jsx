@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, Clock, Percent, Award, Info, AlertTriangle, CheckCircle2, ShieldCheck, CalendarCheck } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 
 export default function ClassSettingsView({ profile, gradingConfigs, playSound, language }) {
   const isTeacher = profile.role === 'profesor';
@@ -29,18 +29,20 @@ export default function ClassSettingsView({ profile, gradingConfigs, playSound, 
 
     setIsSaving(true);
     setSaveStatus(null);
+    const configData = {
+      teacher_id: profile.id,
+      weights: weights,
+      grade_scale: Number(globalScale),
+      attendance_weight: Number(attWeight),
+      include_attendance: incAtt
+    };
+
     try {
-      const { error } = await supabase
-        .from('grading_configs')
-        .upsert({
-          teacher_id: profile.id,
-          weights: weights,
-          grade_scale: Number(globalScale),
-          attendance_weight: Number(attWeight),
-          include_attendance: incAtt
-        });
-      
-      if (error) throw error;
+      if (myConfig.id) {
+        await api.put(`/data/grading_configs/${myConfig.id}`, configData);
+      } else {
+        await api.post('/data/grading_configs', configData);
+      }
       setSaveStatus('success');
       playSound('success');
       setTimeout(() => setSaveStatus(null), 3000);

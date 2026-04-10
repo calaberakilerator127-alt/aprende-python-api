@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Camera, Save, Loader2, Mail, Calendar as CalendarIcon, Trash2, AlertTriangle, ShieldCheck, Settings, Heart, Bell, Volume2, Globe, Clock, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 import { useSound } from '../hooks/useSound';
 import { isUserOnline, formatLastSeen } from '../utils/presenceUtils';
@@ -106,21 +106,9 @@ export default function ProfileView({ profile, isOwnProfile = true, updateProfil
 
     setUploading(true);
     try {
-      const compressedBlob = await compressImage(file);
-      const fileName = `${profile.id}_${Date.now()}.jpg`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('profiles')
-        .upload(filePath, compressedBlob, { contentType: 'image/jpeg', upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('profiles')
-        .getPublicUrl(filePath);
-
-      const success = await updateProfileData({ photo_url: publicUrl });
+      const { uploadFileWithProgress } = await import('../utils/fileUpload');
+      const uploaded = await uploadFileWithProgress(file, 'avatars');
+      const success = await updateProfileData({ photo_url: uploaded.data });
       if (success) {
         showToast(language === 'es' ? 'Foto de perfil lista' : 'Profile picture ready');
       } else {
@@ -154,8 +142,7 @@ export default function ProfileView({ profile, isOwnProfile = true, updateProfil
   const handleAdminRoleChange = async (newRole) => {
     if (!profile.id) return;
     try {
-      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', profile.id);
-      if (error) throw error;
+      await api.put(`/data/profiles/${profile.id}`, { role: newRole });
       showToast(language === 'es' ? 'Rol actualizado' : 'Role updated');
     } catch (e) { showToast(t('error'), 'error'); }
   };

@@ -1,3 +1,11 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Plus, X, Search, Filter, BookOpen, Download, ExternalLink, 
+  Clock, Calendar, User, FileText, Video, Link as LinkIcon, 
+  Trash2, Edit2, Play, Eye, MessageSquare, Info, Shield, 
+  Settings, Award, CheckCircle, ChevronRight, DownloadCloud, 
+  Grid, List as ListIcon, Type, FileUp, Save, Loader2, ArrowLeft, Book, File as FileIcon, PenTool
+} from 'lucide-react';
 import api from '../config/api';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';

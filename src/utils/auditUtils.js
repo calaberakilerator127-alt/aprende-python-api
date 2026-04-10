@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 
 /**
  * Logs an administrative action to the audit logs collection.
@@ -10,7 +10,7 @@ import { supabase } from '../config/supabase';
  */
 export const logAdminAction = async (adminInfo, action, entityId, before = null, after = null) => {
   try {
-    const { error } = await supabase.from('audit_logs').insert({
+    await api.post('/data/audit_logs', {
       admin_id: adminInfo.id,
       admin_name: adminInfo.name,
       admin_role: adminInfo.role || 'developer',
@@ -21,7 +21,6 @@ export const logAdminAction = async (adminInfo, action, entityId, before = null,
       created_at: new Date().toISOString()
     });
     
-    if (error) throw error;
     return true;
   } catch (e) {
     console.error("Error logging admin action:", e);

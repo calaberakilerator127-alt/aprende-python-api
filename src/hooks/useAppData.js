@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../config/api';
 import socket from '../config/socket';
 
-export function useSupabaseData(user) {
+export function useAppData(user) {
   const [users, setUsers] = useState([]);
   const [activities, setActivities] = useState([]);
   const [submissions, setSubmissions] = useState([]);
@@ -46,7 +46,23 @@ export function useSupabaseData(user) {
       const fetchTable = async (table, setter) => {
         try {
           const { data } = await api.get(`/data/${table}`);
-          if (data) setter(data);
+          if (data) {
+            // Mapping logic for compatibility
+            const mappedData = data.map(item => ({
+              ...item,
+              authorId: item.author_id || item.authorId,
+              createdAt: item.created_at || item.createdAt,
+              updatedAt: item.updated_at || item.updatedAt,
+              startDate: item.start_date || item.startDate,
+              dueDate: item.due_date || item.dueDate,
+              activityId: item.activity_id || item.activityId,
+              studentId: item.student_id || item.studentId,
+              eventId: item.event_id || item.eventId,
+              assignedTo: item.assigned_to || item.assignedTo,
+              htmlContent: item.html_content || item.htmlContent
+            }));
+            setter(mappedData);
+          }
         } catch (e) {
           console.error(`Error cargando tabla ${table}:`, e);
         }
@@ -73,21 +89,36 @@ export function useSupabaseData(user) {
 
     fetchData();
 
-    // 2. Suscripciones en tiempo real vía Socket.io (Reemplazo de Supabase Realtime)
+    // 2. Suscripciones en tiempo real vía Socket.io
     socket.on('db_change', (payload) => {
       const { table, eventType, new: newRecord, old: oldRecord } = payload;
       
       const setter = getSetter(table);
       if (!setter) return;
 
+      const mapRecord = (rec) => rec ? ({
+        ...rec,
+        authorId: rec.author_id || rec.authorId,
+        createdAt: rec.created_at || rec.createdAt,
+        updatedAt: rec.updated_at || rec.updatedAt,
+        startDate: rec.start_date || rec.startDate,
+        dueDate: rec.due_date || rec.dueDate,
+        activityId: rec.activity_id || rec.activityId,
+        studentId: rec.student_id || rec.studentId,
+        eventId: rec.event_id || rec.eventId,
+        assignedTo: rec.assigned_to || rec.assignedTo,
+        htmlContent: rec.html_content || rec.htmlContent
+      }) : null;
+
       setter(prev => {
         if (eventType === 'INSERT') {
-          // Evitar duplicados si el optimista ya lo insertó
-          if (prev.some(item => item.id === newRecord.id)) return prev;
-          return [newRecord, ...prev];
+          const mapped = mapRecord(newRecord);
+          if (prev.some(item => item.id === mapped.id)) return prev;
+          return [mapped, ...prev];
         }
         if (eventType === 'UPDATE') {
-          return prev.map(item => item.id === newRecord.id ? { ...item, ...newRecord } : item);
+          const mapped = mapRecord(newRecord);
+          return prev.map(item => item.id === mapped.id ? { ...item, ...mapped } : item);
         }
         if (eventType === 'DELETE') {
           return prev.filter(item => item.id !== oldRecord.id);
@@ -100,6 +131,7 @@ export function useSupabaseData(user) {
       socket.off('db_change');
     };
   }, [user]);
+
 
   /**
    * Utilidad para cargar el registro completo bajo demanda (Hidratación)

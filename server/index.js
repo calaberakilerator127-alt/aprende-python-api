@@ -371,6 +371,19 @@ app.post('/api/upload', auth.verifyToken, upload.single('file'), (req, res) => {
   });
 });
 
+// DELETE - Eliminar archivo
+app.delete('/api/upload/:filename', auth.verifyToken, (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(uploadDir, filename);
+  
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    res.json({ success: true, message: 'Archivo eliminado' });
+  } else {
+    res.status(404).json({ error: 'Archivo no encontrado' });
+  }
+});
+
 // Configuración de Perfil (setup)
 app.put('/api/profiles/setup', auth.verifyToken, async (req, res) => {
   const { name, role, ...extra } = req.body;

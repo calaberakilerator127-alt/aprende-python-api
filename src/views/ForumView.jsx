@@ -1,3 +1,10 @@
+import React, { useState } from 'react';
+import { 
+  MessageSquare, Plus, Search, X, Tag, User, Calendar, 
+  Edit2, Trash2, ThumbsUp, ThumbsDown, CheckCircle, 
+  ChevronUp, ChevronDown, Filter, Clock, Eye, Send, 
+  MessageCircle, Hash, AlertTriangle, Shield, Flag
+} from 'lucide-react';
 import api from '../config/api';
 import CommentsSection from '../components/CommentsSection';
 import ReactQuill from 'react-quill-new';

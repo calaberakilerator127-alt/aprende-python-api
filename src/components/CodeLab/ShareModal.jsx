@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Share2, Copy, MessageSquare, X, CheckCircle } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import api from '../../config/api';
 
 /**
  * ShareModal: Permite compartir códigos o notas en el foro.
@@ -40,7 +40,7 @@ export default function ShareModal({ isOpen, onClose, item, type, profile, showT
                postContent = `<p>He compartido un apunte desde CodeLab:</p><br/>` + item.content;
            }
 
-           const { error } = await supabase.from('forum').insert({
+           await api.post('/data/forum', {
                title: `Compartido desde CodeLab: ${item.title || item.name}`,
                content: postContent,
                category: 'proyecto',
@@ -50,8 +50,6 @@ export default function ShareModal({ isOpen, onClose, item, type, profile, showT
                dislikes: [],
                read_by: []
            });
-
-           if (error) throw error;
 
            showToast("¡Publicado en el foro de la comunidad con éxito!", "success");
            onClose();

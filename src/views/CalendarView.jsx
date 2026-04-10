@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Calendar as CalendarIcon, Clock, Video, Plus, X, Trash2, Edit2, User, CheckCircle, Users, History, ChevronLeft, ChevronRight, List as ListIcon, CalendarDays, PowerOff, Search, UserCheck } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 
 export default function CalendarView({ profile, events, users, showToast, createNotification, attendance = [], addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic }) {
@@ -130,18 +130,10 @@ export default function CalendarView({ profile, events, users, showToast, create
 
     try {
       if (editingEventId) {
-        const { error } = await supabase
-          .from('events')
-          .update(eventData)
-          .eq('id', editingEventId);
-        if (error) throw error;
+        await api.put(`/data/events/${editingEventId}`, eventData);
         showToast('Clase actualizada');
       } else {
-        const { data: realRecord, error } = await supabase
-          .from('events')
-          .insert({ ...eventData, created_at: nowISO })
-          .select().single();
-        if (error) throw error;
+        const { data: realRecord } = await api.post('/data/events', { ...eventData, created_at: nowISO });
         if (tempIdStr) replaceOptimistic('events', tempIdStr, realRecord);
         // Notify only assigned students (null = all, or array of specific IDs)
         const notifyTargets = assignMode === 'all' ? null : selectedStudents;
@@ -164,8 +156,7 @@ export default function CalendarView({ profile, events, users, showToast, create
     removeOptimistic('events', id);
 
     try {
-      const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) throw error;
+      await api.delete(`/data/events/${id}`);
       showToast('Clase eliminada');
     } catch (e) { console.error(e); }
   };
@@ -173,8 +164,7 @@ export default function CalendarView({ profile, events, users, showToast, create
   const handleEndMeeting = async (id) => {
     if (!window.confirm('¿Finalizar esta clase ahora? Ya nadie podrá unirse.')) return;
     try {
-      const { error } = await supabase.from('events').update({ status: 'finalizada' }).eq('id', id);
-      if (error) throw error;
+      await api.put(`/data/events/${id}`, { status: 'finalizada' });
       showToast('Clase finalizada correctamente');
     } catch (e) { console.error(e); }
   };
@@ -185,17 +175,25 @@ export default function CalendarView({ profile, events, users, showToast, create
     updateOptimistic('attendance', `${eventId}_${studentId}`, tempAtt);
 
     try {
-       const { error } = await supabase
-          .from('attendance')
-          .upsert({
-            event_id: eventId,
-            student_id: studentId,
-            is_present: isPresent,
-            updated_at: Date.now(),
-            marked_by: profile.id
-          }, { onConflict: 'event_id,student_id' });
-          
-       if (error) throw error;
+       // El backend maneja upsert si el id (o combinación) ya existe en algunas tablas, 
+       // pero aquí usamos una tabla de asistencia. 
+       // Si el backend no tiene un 'upsert' genérico, fallará si ya existe.
+       // En server/index.js se usa `PUT /data/:table/:id`.
+       // Necesitamos ver si podemos usar esa ruta. 
+       // Attendance usualmente no tiene un 'id' único simple, sino (event_id, student_id).
+       // Sin embargo, el backend genérico espera un ID.
+       
+       const existing = attendance.find(a => a.eventId === eventId && a.studentId === studentId);
+       if (existing) {
+         await api.put(`/data/attendance/${existing.id}`, { is_present: isPresent, marked_by: profile.id });
+       } else {
+         await api.post('/data/attendance', {
+           event_id: eventId,
+           student_id: studentId,
+           is_present: isPresent,
+           marked_by: profile.id
+         });
+       }
     } catch (e) { console.error(e); }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Award, Search, User, FileText, CheckCircle, X, ExternalLink, Calendar, Mail, AlertCircle, Clock, Check, Filter, AlertTriangle, Save, ArrowRight, Info, ShieldCheck, Paperclip, MessageSquare, Download, Settings } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 import CommentsSection from '../components/CommentsSection';
 import DocumentEditor from '../components/DocumentEditor';
@@ -76,16 +76,19 @@ export default function GradesView({ profile, activities, submissions, users, at
   const handleSaveConfig = async (newWeights, newScale, attWeight, incAtt) => {
     setIsSavingConfig(true);
     try {
-      const { error } = await supabase
-        .from('grading_configs')
-        .upsert({
-          teacher_id: profile.id,
-          weights: newWeights,
-          grade_scale: Number(newScale),
-          attendance_weight: Number(attWeight),
-          include_attendance: incAtt
-        });
-      if (error) throw error;
+      const configData = {
+        teacher_id: profile.id,
+        weights: newWeights,
+        grade_scale: Number(newScale),
+        attendance_weight: Number(attWeight),
+        include_attendance: incAtt
+      };
+      
+      if (myConfig.id) {
+        await api.put(`/data/grading_configs/${myConfig.id}`, configData);
+      } else {
+        await api.post('/data/grading_configs', configData);
+      }
       setShowConfigModal(false);
     } catch (e) {
       console.error(e);
@@ -112,19 +115,15 @@ export default function GradesView({ profile, activities, submissions, users, at
     e.preventDefault();
     if (!gradingSubmission || grade === '') return;
     try {
-      const { error } = await supabase
-        .from('submissions')
-        .update({
+      await api.put(`/data/submissions/${gradingSubmission.id}`, {
           grade: Number(grade),
           rubric_scores: gradingSubmission.rubric_scores_draft || {},
           teacher_feedback: teacherFeedback,
           status: 'calificado',
           graded_at: Date.now(),
           graded_by: profile.id
-        })
-        .eq('id', gradingSubmission.id);
+      });
       
-      if (error) throw error;
       setGradingSubmission(null);
       setGrade('');
       setEditedHtml('');

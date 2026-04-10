@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, X, File, CheckCircle, Loader2, Download, AlertCircle } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { uploadFileWithProgress } from '../utils/fileUpload';
 
 export default function FileUploader({ files = [], onUploadComplete, onRemoveFile, onStatusChange, language = 'es' }) {
@@ -46,6 +46,7 @@ export default function FileUploader({ files = [], onUploadComplete, onRemoveFil
               url: result.data,
               size: result.size,
               type: result.type,
+              filename: result.filename, // Backend response 'filename'
               path: result.path
             });
           }
@@ -65,16 +66,12 @@ export default function FileUploader({ files = [], onUploadComplete, onRemoveFil
   };
 
   const removeFile = async (file) => {
-    if (file.path) {
+    const filename = file.filename || file.path?.split('/').pop();
+    if (filename) {
       try {
-        // En Supabase la eliminación es por path dentro de un bucket
-        const { error } = await supabase.storage
-          .from('submissions')
-          .remove([file.path]);
-          
-        if (error) throw error;
+        await api.delete(`/upload/${filename}`);
       } catch (e) {
-        console.error("Error deleting file from Supabase storage:", e);
+        console.error("Error deleting file from storage:", e);
       }
     }
     onRemoveFile(file.url);

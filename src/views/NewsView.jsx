@@ -108,22 +108,18 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
     updateOptimistic('news', item.id, { [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList });
 
     try {
-      await supabase
-        .from('news')
-        .update({ [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList })
-        .eq('id', item.id);
+      await api.put(`/data/news/${item.id}`, { [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList });
     } catch (e) { console.error(e); }
   };
 
   const handleRead = async (id) => {
     try {
-      const { data } = await supabase.from('news').select('read_by').eq('id', id).single();
-      const currentReadBy = data?.read_by || [];
+      const item = news.find(n => n.id === id);
+      const currentReadBy = item?.read_by || [];
       if (!currentReadBy.includes(profile.id)) {
-        await supabase
-          .from('news')
-          .update({ read_by: [...currentReadBy, profile.id] })
-          .eq('id', id);
+        const newReadBy = [...currentReadBy, profile.id];
+        updateOptimistic('news', id, { read_by: newReadBy });
+        await api.put(`/data/news/${id}`, { read_by: newReadBy });
       }
     } catch (e) { console.error(e); }
   };

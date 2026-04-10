@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { FileText, Save, Download, FileUp, Trash2, Plus, X, Share2, Bold, Type } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import api from '../../config/api';
 import { useSettings } from '../../hooks/SettingsContext';
 import ShareModal from './ShareModal';
 
@@ -57,35 +57,22 @@ export default function NotesWorkspace({ profile, showToast, savedNotes }) {
       }
 
       try {
+          const noteData = {
+             title: noteName,
+             content: activeTab.content,
+             updated_at: new Date().toISOString()
+          };
+
           if (activeTab.id) {
-             // Actualizar
-             const { error } = await supabase
-               .from('saved_notes')
-               .update({
-                  title: noteName,
-                  content: activeTab.content,
-                  updated_at: new Date().toISOString()
-               })
-               .eq('id', activeTab.id);
-               
-             if (error) throw error;
+             await api.put(`/data/saved_notes/${activeTab.id}`, noteData);
              showToast("Nota actualizada correctamente");
           } else {
-             // Crear nueva
-             const { data, error } = await supabase
-               .from('saved_notes')
-               .insert({
-                  title: noteName,
-                  content: activeTab.content,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  author_id: profile.id,
-                  author_name: profile.name
-               })
-               .select()
-               .single();
-               
-             if (error) throw error;
+             const { data } = await api.post('/data/saved_notes', {
+                ...noteData,
+                created_at: new Date().toISOString(),
+                author_id: profile.id,
+                author_name: profile.name
+             });
              
              // Actualizar tab list con el ID real
              setOpenTabs(prev => prev.map(t => t.tempId === activeTab.tempId ? { ...t, id: data.id } : t));
@@ -126,8 +113,7 @@ export default function NotesWorkspace({ profile, showToast, savedNotes }) {
   const handleDeleteDbNote = async (id) => {
       if (!window.confirm("¿Estás seguro de eliminar esta nota de la nube defintivamente?")) return;
       try {
-          const { error } = await supabase.from('saved_notes').delete().eq('id', id);
-          if (error) throw error;
+          await api.delete(`/data/saved_notes/${id}`);
           
           // Quitar de los tabs si está abierta
           const filtered = openTabs.filter(t => t.id !== id);

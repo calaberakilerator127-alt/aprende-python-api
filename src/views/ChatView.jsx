@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Users, User, MessageCircle, ArrowLeft, Loader2, Plus, Paperclip, X, Trash2, Image as ImageIcon, Shield, Pin, MoreVertical, Phone, Video, Edit3, ExternalLink, History, Search, Clock, ShieldAlert, FileText, Info, Trash, Settings, UserPlus, UserMinus, PinOff } from 'lucide-react';
 import { useChat, useGroups, useUserActions, useTyping, useGlobalTyping } from '../hooks/useChat';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { uploadFileWithProgress } from '../utils/fileUpload';
 import { useSettings } from '../hooks/SettingsContext';
 // Eliminado isUserOnline y formatLastSeen por falta de uso
@@ -91,12 +91,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
     try {
       if (permanent && profile.role === 'profesor') {
          // Borrar mensajes permanentemente en DB
-         const { error } = await supabase
-           .from('messages')
-           .delete()
-           .eq('chat_id', activeChat.id);
-         
-         if (error) throw error;
+         await api.delete(`/data/messages?chat_id=${activeChat.id}`);
       }
 
       const lastCleared = JSON.parse(localStorage.getItem(`clearedAt_${profile.id}`) || '{}');
@@ -119,9 +114,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
         ? [profile.id, activeChat.otherUserId] 
         : (activeChat.members && activeChat.members.length > 0 ? activeChat.members : ['all']);
         
-      const { data: eventData, error: eventErr } = await supabase
-        .from('events')
-        .insert({
+      const { data: eventData } = await api.post('/data/events', {
            title: language === 'es' ? `Llamada rápida: ${activeChat.name}` : `Quick call: ${activeChat.name}`,
            date: new Date().toISOString(),
            start_date: new Date().toISOString(),
@@ -130,14 +123,10 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
            type: 'meeting',
            author_id: profile.id,
            status: 'en_curso'
-        })
-        .select()
-        .single();
-
-      if (eventErr) throw eventErr;
+      });
 
       // Registrar en Call Logs
-      await supabase.from('call_logs').insert({
+      await api.post('/data/call_logs', {
          caller_id: profile.id,
          caller_name: profile.name,
          receiver_id: activeChat.type === 'private' ? activeChat.otherUserId : null,
@@ -177,9 +166,9 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
 
   const handleEndCall = async (msgId, eventId) => {
      const now = Date.now();
-     await supabase.from('messages').update({ 'attached_file.endedAt': now }).eq('id', msgId);
+     await api.put(`/data/messages/${msgId}`, { attached_file: { ...messages.find(m => m.id === msgId)?.attached_file, endedAt: now } });
      if (eventId) {
-        await supabase.from('events').update({ end_date: new Date().toISOString() }).eq('id', eventId);
+        await api.put(`/data/events/${eventId}`, { end_date: new Date().toISOString() });
      }
   };
 
@@ -188,10 +177,9 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
     const log = myCallLogs.find(l => l.id === logId);
     try {
       if (log?.event_id) {
-        await supabase.from('events').delete().eq('id', log.event_id);
+        await api.delete(`/data/events/${log.event_id}`);
       }
-      const { error } = await supabase.from('call_logs').delete().eq('id', logId);
-      if (error) throw error;
+      await api.delete(`/data/call_logs/${logId}`);
       showToast?.(language === 'es' ? 'Registro eliminado' : 'Record deleted');
     } catch (e) { 
       console.error(e);
@@ -204,9 +192,9 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
     try {
       for (const log of myCallLogs) {
         if (log.event_id) {
-          await supabase.from('events').delete().eq('id', log.event_id);
+          await api.delete(`/data/events/${log.event_id}`);
         }
-        await supabase.from('call_logs').delete().eq('id', log.id);
+        await api.delete(`/data/call_logs/${log.id}`);
       }
     } catch (e) {
       console.error("Error al vaciar historial:", e);

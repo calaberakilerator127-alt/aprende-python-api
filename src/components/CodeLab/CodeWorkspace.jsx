@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Copy, RotateCcw, Terminal, Code2, Sparkles, Loader2, AlertCircle, Cpu, Zap, Share2, Info, XCircle, Save, FolderOpen, Download, Upload, Trash2, Edit2 } from 'lucide-react';
 import { useSettings } from '../../hooks/SettingsContext';
-import { supabase } from '../../config/supabase';
+import api from '../../config/api';
 import ShareModal from './ShareModal';
 
 // --- Syntax Highlighting Engine ---
@@ -216,33 +216,23 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
     }
 
     try {
+      const codeData = {
+         code: code,
+         title: nameToSave,
+         updated_at: new Date().toISOString()
+      };
+
       if (currentCodeId) {
-        const { error } = await supabase
-          .from('saved_codes')
-          .update({
-             code: code,
-             title: nameToSave,
-             updated_at: new Date().toISOString()
-          })
-          .eq('id', currentCodeId);
-          
-        if (error) throw error;
+        await api.put(`/data/saved_codes/${currentCodeId}`, codeData);
         showToast('Código actualizado guardado');
       } else {
-        const { data, error } = await supabase
-          .from('saved_codes')
-          .insert({
-             code: code,
-             title: nameToSave,
-             created_at: new Date().toISOString(),
-             updated_at: new Date().toISOString(),
-             author_id: profile.id,
-             author_name: profile.name
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
+        const { data } = await api.post('/data/saved_codes', {
+           ...codeData,
+           created_at: new Date().toISOString(),
+           author_id: profile.id,
+           author_name: profile.name
+        });
+        
         setCurrentCodeId(data.id);
         showToast('Nuevo código guardado correctamente');
       }
@@ -255,8 +245,7 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
   const handleDeleteCode = async (id) => {
     if (!window.confirm("¿Seguro de eliminar este código?")) return;
     try {
-      const { error } = await supabase.from('saved_codes').delete().eq('id', id);
-      if (error) throw error;
+      await api.delete(`/data/saved_codes/${id}`);
       
       if (currentCodeId === id) {
           setCurrentCodeId(null);

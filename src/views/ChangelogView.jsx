@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '../hooks/SettingsContext';
 import { logAdminAction } from '../utils/auditUtils';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 
 export default function ChangelogView({ changelog = [], profile, addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic }) {
   const { t, language } = useSettings();
@@ -77,20 +77,10 @@ export default function ChangelogView({ changelog = [], profile, addOptimistic, 
 
     try {
       if (editingEntry) {
-        const { error } = await supabase
-          .from('changelog')
-          .update(data)
-          .eq('id', editingEntry.id);
-          
-        if (error) throw error;
+        await api.put(`/data/changelog/${editingEntry.id}`, data);
         await logAdminAction(profile, 'edit_changelog', editingEntry.id, editingEntry, data);
       } else {
-        const { data: realRecord, error } = await supabase
-          .from('changelog')
-          .insert(data)
-          .select().single();
-          
-        if (error) throw error;
+        const { data: realRecord } = await api.post('/data/changelog', data);
         if (tempIdStr) replaceOptimistic('changelog', tempIdStr, realRecord);
       }
       setEditingEntry(null);
@@ -108,8 +98,7 @@ export default function ChangelogView({ changelog = [], profile, addOptimistic, 
       removeOptimistic('changelog', entry.id);
 
       try {
-        const { error } = await supabase.from('changelog').delete().eq('id', entry.id);
-        if (error) throw error;
+        await api.delete(`/data/changelog/${entry.id}`);
         await logAdminAction(profile, 'delete_changelog', entry.id, entry);
       } catch (e) { console.error(e); }
     }

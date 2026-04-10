@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Maximize2, Minimize2, Video, Phone, Clock, CheckCircle, ExternalLink, ShieldCheck } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 
 /**
@@ -48,27 +48,19 @@ export default function MeetingOverlay({ call, profile, onClose }) {
 
     try {
       if (call.msgId) {
-        // En Supabase actualizamos la columna metadata (JSONB)
-        await supabase
-          .from('messages')
-          .update({ 
-            metadata: { 
-              ended_at: now,
-              duration: durationSec ?? elapsed 
-            } 
-          })
-          .eq('id', call.msgId);
+        await api.put(`/data/messages/${call.msgId}`, { 
+          metadata: { 
+            ended_at: now,
+            duration: durationSec ?? elapsed 
+          } 
+        });
       }
       
       if (call.eventId) {
-        // Para eventos, usamos end_date (TIMESTAMPTZ espera ISO String o null)
-        await supabase
-          .from('events')
-          .update({ 
-            end_date: new Date(now).toISOString(), 
-            status: 'finalizada' 
-          })
-          .eq('id', call.eventId);
+        await api.put(`/data/events/${call.eventId}`, { 
+          end_date: new Date(now).toISOString(), 
+          status: 'finalizada' 
+        });
       }
     } catch (e) {
       console.error('Error finalizando llamada:', e);

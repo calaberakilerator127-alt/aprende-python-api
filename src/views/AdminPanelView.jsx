@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '../hooks/SettingsContext';
 import { logAdminAction } from '../utils/auditUtils';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 
 export default function AdminPanelView({ 
   profile: devProfile, 
@@ -48,38 +48,29 @@ export default function AdminPanelView({
   React.useEffect(() => {
     if (activeSubTab === 'security') {
        // Suscribirse a logs de auditoría
-       const channel = supabase
-         .channel('audit_logs_changes')
-         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'audit_logs' }, (payload) => {
-           setAuditLogs(prev => [payload.new, ...prev]);
-         })
-         .subscribe();
+        const fetchAuditLogs = async () => {
+          try {
+            const { data } = await api.get('/data/audit_logs?_limit=100&_sort=created_at:desc');
+            if (data) setAuditLogs(data);
+          } catch (e) { console.error(e); }
+        };
 
-       const fetchAuditLogs = async () => {
-         const { data } = await supabase
-           .from('audit_logs')
-           .select('*')
-           .order('created_at', { ascending: false })
-           .limit(100);
-         if (data) setAuditLogs(data);
-       };
+        const fetchSecurityLists = async () => {
+          try {
+            const { data: white } = await api.get('/data/settings?key=security_whitelist');
+            const { data: black } = await api.get('/data/settings?key=security_blacklist');
+            
+            setSecurityLists({
+              whitelist: white?.[0]?.value?.emails || [],
+              blacklist: black?.[0]?.value?.emails || []
+            });
+          } catch (e) { console.error(e); }
+        };
 
-       const fetchSecurityLists = async () => {
-         const { data: white } = await supabase.from('settings').select('value').eq('key', 'security_whitelist').single();
-         const { data: black } = await supabase.from('settings').select('value').eq('key', 'security_blacklist').single();
-         
-         setSecurityLists({
-           whitelist: white?.value?.emails || [],
-           blacklist: black?.value?.emails || []
-         });
-       };
+        fetchAuditLogs();
+        fetchSecurityLists();
 
-       fetchAuditLogs();
-       fetchSecurityLists();
-
-       return () => {
-         supabase.removeChannel(channel);
-       };
+        return () => {};
     }
   }, [activeSubTab]);
 
@@ -104,12 +95,10 @@ export default function AdminPanelView({
     updateOptimistic('settings', 'global', { value: optimisticSettings });
 
     try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ 
+      await api.post('/data/settings', { 
           key: 'global', 
           value: optimisticSettings
-        });
+      });
       
       if (error) throw error;
       await logAdminAction(devProfile, 'toggle_maintenance', 'global_settings', { mode: !newVal }, { mode: newVal });
@@ -136,8 +125,8 @@ export default function AdminPanelView({
     } else if (actionType === 'delete') {
       confirmMsg = `⚠️ ADVERTENCIA: ¿ELIMINAR COMPLETAMENTE a ${user.name}? Esta acción es irreversible.`;
       actionFn = async () => {
-        const { error } = await supabase.from('profiles').delete().eq('id', user.id);
-        if (error) throw error;
+        await api.delete(`/data/profiles/${user.id}`);
+        return true;
         return true;
       };
     }
@@ -164,12 +153,10 @@ export default function AdminPanelView({
         newList = newList.filter(e => e !== email);
       }
 
-      const { error } = await supabase
-        .from('settings')
-        .upsert({ 
+      await api.post('/data/settings', { 
           key: dbKey, 
           value: { emails: newList } 
-        });
+      });
       
       if (error) throw error;
       setSecurityLists(prev => ({ ...prev, [type]: newList }));
@@ -317,7 +304,7 @@ export default function AdminPanelView({
                          <button className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all">Cambiar Estado</button>
                          <button onClick={async () => {
                            if (window.confirm('¿Eliminar este reporte definitivamente?')) {
-                             await supabase.from('feedback').delete().eq('id', report.id);
+                             await api.delete(`/data/feedback/${report.id}`);
                              await logAdminAction(devProfile, 'delete_report', report.id, report);
                              showToast('Reporte eliminado');
                            }
@@ -384,8 +371,7 @@ export default function AdminPanelView({
                           const tempIdStr = `temp-${Date.now()}`;
                           addOptimistic('changelog', { ...data, id: tempIdStr, is_optimistic: true });
 
-                          const { data: realRecord, error } = await supabase.from('changelog').insert(data).select().single();
-                          if (error) throw error;
+                          const { data: realRecord } = await api.post('/data/changelog', data);
                           replaceOptimistic('changelog', tempIdStr, realRecord);
                           showToast('Changelog inicializado con éxito');
                         } catch (e) { console.error(e); showToast('Error al inicializar'); }
