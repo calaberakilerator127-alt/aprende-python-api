@@ -14,8 +14,18 @@ async function runMigrations() {
     if (fs.existsSync(schemaPath)) {
       console.log('--- [MIGRACIÓN] Cargando schema.sql ---');
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-      await db.query(schemaSql);
-      console.log('--- [MIGRACIÓN] schema.sql ejecutado correctamente ---');
+      try {
+        await db.query(schemaSql);
+        console.log('--- [MIGRACIÓN] schema.sql ejecutado correctamente ---');
+      } catch (error) {
+        // Manejar caso donde las tablas/índices ya existen (Error 42P07 o mensaje descriptivo)
+        if (error.code === '42P07' || error.message.includes('already exists')) {
+          console.log('--- [MIGRACIÓN] Las tablas e índices ya existen. Base de datos lista. ---');
+        } else {
+          console.error('--- [MIGRACIÓN] Error fatal ejecutando schema.sql:', error.message);
+          throw error; // Re-lanzar si es un error real de sintaxis o conexión
+        }
+      }
     }
 
     // 2. Parches de Sincronización (Asegurar columnas específicas que el frontend requiere)
