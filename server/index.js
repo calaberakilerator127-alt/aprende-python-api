@@ -263,19 +263,50 @@ app.put('/api/data/:table/:id', auth.verifyToken, async (req, res) => {
 });
 
 // DELETE - Eliminar registro
+app.delete('/api/data/:table/bulk', auth.verifyToken, async (req, res) => {
+  const { table } = req.params;
+  if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
+
+  try {
+    let query = `DELETE FROM "${table}"`;
+    let params = [];
+
+    // Lógica específica por tabla si es necesario
+    if (table === 'notifications') {
+      // Borrar notificaciones que son para el usuario actual o para todos
+      query += ` WHERE ($1 = ANY(target_user_ids) OR target_user_ids IS NULL)`;
+      params = [req.user.id];
+    } else {
+      // Para otras tablas, requeriría filtrar por author_id para mayor seguridad
+      // Por ahora solo permitimos bulk delete en notificaciones por defecto
+      return res.status(403).json({ error: 'Borrado masivo no permitido para esta tabla' });
+    }
+
+    const { rowCount } = await db.query(query, params);
+    broadcastChange(table, 'DELETE_BULK', null, { userId: req.user.id });
+    res.json({ success: true, count: rowCount });
+  } catch (err) {
+    console.error(`Error en DELETE BULK /api/data/${table}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/data/:table/:id', auth.verifyToken, async (req, res) => {
   const { table, id } = req.params;
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
   try {
-    const { rows: oldRows } = await db.query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
-    if (oldRows.length === 0) return res.status(404).json({ error: 'Registro no encontrado' });
-
-    await db.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
-    broadcastChange(table, 'DELETE', null, { id });
-    res.json({ success: true });
+    const { rowCount } = await db.query(`DELETE FROM "${table}" WHERE id = $1`, [id]);
+    
+    // Devolvemos 200 incluso si ya no estaba (idempotencia)
+    // Pero solo emitimos si realmente se borró algo
+    if (rowCount > 0) {
+      broadcastChange(table, 'DELETE', null, { id });
+    }
+    res.json({ success: true, count: rowCount });
   } catch (err) {
-    res.status(500).json({ error: `Error eliminando registro en ${table}` });
+    console.error(`Error en DELETE /api/data/${table}:`, err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

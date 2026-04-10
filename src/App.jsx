@@ -330,9 +330,8 @@ export default function App() {
 
   const handleClearAllNotifications = async () => {
     try {
-      // Eliminar todas las notificaciones visibles secuencialmente o en paralelo
-      const promises = notifications.map(notif => api.delete(`/data/notifications/${notif.id}`));
-      await Promise.all(promises);
+      // Usar el nuevo endpoint de borrado masivo
+      await api.delete('/data/notifications/bulk');
       if (notificationsOpen) setNotificationsOpen(false);
       showToast(language === 'es' ? 'Notificaciones limpiadas' : 'Notifications cleared');
     } catch (e) {
