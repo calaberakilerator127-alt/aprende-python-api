@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, X, Calendar, User, FileText, CheckCircle, Clock, Trash2, Edit2, Send, Link as LinkIcon, ClipboardList, Info, Shield, Settings, AlertTriangle, Copy, Award, Users, UserCheck, Search, Paperclip, MessageSquare, Eye } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useSettings } from '../hooks/SettingsContext';
@@ -130,12 +130,10 @@ export default function ActivitiesView({ type, profile, activities, submissions,
       };
 
       if (editingActivity) {
-        const { error } = await supabase.from('activities').update(data).eq('id', editingActivity.id);
-        if (error) throw error;
+        await api.put(`/data/activities/${editingActivity.id}`, data);
         showToast(language === 'es' ? 'Actividad actualizada' : 'Activity updated');
       } else {
-        const { error } = await supabase.from('activities').insert(data);
-        if (error) throw error;
+        await api.post('/data/activities', data);
         const notifTargets = assignedToType === 'all' ? null : assignedToUsers;
         createNotification(`Nueva ${activityType}: ${title}`, notifTargets, activityType);
         showToast(`${activityType === 'tarea' ? 'Tarea' : 'Evaluación'} creada`);
@@ -160,8 +158,10 @@ export default function ActivitiesView({ type, profile, activities, submissions,
   // Load read stats for teacher
   const fetchReadStats = async () => {
     if (!isTeacher) return;
-    const { data } = await supabase.from('content_reads').select('*').eq('content_type', 'actividad');
-    setContentReadData(data || []);
+    try {
+      const { data } = await api.get('/data/content_reads');
+      setContentReadData(data?.filter(r => r.content_type === 'actividad') || []);
+    } catch (e) { console.error(e); }
   };
 
   React.useEffect(() => {
@@ -243,8 +243,7 @@ export default function ActivitiesView({ type, profile, activities, submissions,
   const handleDeleteActivity = async (id) => {
     if (!window.confirm(language === 'es' ? '¿Eliminar actividad definitivamente?' : 'Delete activity permanently?')) return;
     try {
-      const { error } = await supabase.from('activities').delete().eq('id', id);
-      if (error) throw error;
+      await api.delete(`/data/activities/${id}`);
       showToast(language === 'es' ? 'Eliminado' : 'Deleted');
     } catch (e) { console.error(e); }
   };
@@ -293,19 +292,31 @@ export default function ActivitiesView({ type, profile, activities, submissions,
     try {
       if (mySub) {
         // Update existing submission
-        const { error } = await supabase.from('submissions').update(submissionData).eq('id', mySub.id);
-        if (error) throw error;
+        await api.put(`/data/submissions/${mySub.id}`, {
+          ...submissionData,
+          activity_id: activityId,
+          student_id: profile.id,
+          student_name: profile.name,
+          html_content: submissionHtml, // ensure snake_case
+          submitted_at: Date.now()
+        });
       } else {
         // Create new submission
-        const { data, error } = await supabase.from('submissions').insert({ ...submissionData, is_optimistic: undefined, id: undefined }).select().single();
-        if (error) throw error;
-        replaceOptimistic('submissions', tempId, data);
+        const { data: realRecord } = await api.post('/data/submissions', {
+          ...submissionData,
+          activity_id: activityId,
+          student_id: profile.id,
+          student_name: profile.name,
+          html_content: submissionHtml,
+          is_optimistic: undefined,
+          id: undefined
+        });
+        replaceOptimistic('submissions', tempId, realRecord);
       }
       showToast(language === 'es' ? '¡Entrega confirmada!' : 'Submission confirmed!');
     } catch (e) { 
       console.error(e); 
       showToast(language === 'es' ? 'Error al enviar' : 'Error submitting', 'error');
-      // En una versión más avanzada, revertiríamos el cambio optimista aquí.
     }
   };
 
@@ -415,12 +426,12 @@ export default function ActivitiesView({ type, profile, activities, submissions,
                       <button
                         onClick={async () => {
                           const newStatus = act.manualAccess === 'open' ? 'closed' : 'open';
-                          const { error } = await supabase.from('activities').update({ manualAccess: newStatus }).eq('id', act.id);
-                          if (error) {
+                          try {
+                            await api.put(`/data/activities/${act.id}`, { manual_access: newStatus });
+                            showToast(language === 'es' ? `Acceso ${newStatus === 'open' ? 'Abierto' : 'Cerrado'}` : `Access ${newStatus === 'open' ? 'Opened' : 'Closed'}`);
+                          } catch (error) {
                             console.error(error);
-                            return;
                           }
-                          showToast(language === 'es' ? `Acceso ${newStatus === 'open' ? 'Abierto' : 'Cerrado'}` : `Access ${newStatus === 'open' ? 'Opened' : 'Closed'}`);
                         }}
                         className={`p-2.5 rounded-xl transition shadow-sm ${act.manualAccess === 'open' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' : 'text-gray-500 bg-gray-50 dark:bg-slate-700/50'}`}
                         data-tooltip={language === 'es' ? "Cambiar acceso manual" : "Toggle manual access"}

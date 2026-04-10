@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { MessageSquare, Plus, X, Edit2, Trash2, Calendar, User, Tag, Search, ThumbsUp, ThumbsDown, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import CommentsSection from '../components/CommentsSection';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -61,21 +59,14 @@ export default function ForumView({ profile, users, forum, showToast, comments =
 
       if (editingPost) {
         updateOptimistic('forum', editingPost.id, postData);
-        const { error } = await supabase.from('forum').update(postData).eq('id', editingPost.id);
-        if (error) throw error;
+        await api.put(`/data/forum/${editingPost.id}`, postData);
         showToast(language === 'es' ? 'Publicación actualizada' : 'Post updated');
       } else {
-        const nowISO = new Date().toISOString();
-        const { data: realRecord, error } = await supabase.from('forum').insert({
+        const { data: realRecord } = await api.post('/data/forum', {
           ...postData,
-          created_at: nowISO,
           is_pinned: false,
-          read_by: [],
-          likes: [],
-          dislikes: []
-        }).select().single();
+        });
         
-        if (error) throw error;
         if (tempIdStr) replaceOptimistic('forum', tempIdStr, realRecord);
         showToast(language === 'es' ? 'Publicado en el foro' : 'Posted to the forum');
       }
@@ -108,12 +99,9 @@ export default function ForumView({ profile, users, forum, showToast, comments =
 
   const handleDeletePost = async (id) => {
     if (window.confirm(language === 'es' ? '¿Eliminar esta publicación?' : 'Delete this post?')) {
-      // Borrado Optimista
       removeOptimistic('forum', id);
-
       try {
-        const { error } = await supabase.from('forum').delete().eq('id', id);
-        if (error) throw error;
+        await api.delete(`/data/forum/${id}`);
         showToast(language === 'es' ? 'Publicación eliminada' : 'Post deleted');
       } catch (e) {
         console.error(e);
@@ -138,19 +126,20 @@ export default function ForumView({ profile, users, forum, showToast, comments =
     updateOptimistic('forum', item.id, { [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList });
 
     try {
-      await supabase.from('forum').update({ [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList }).eq('id', item.id);
+      await api.put(`/data/forum/${item.id}`, { [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList });
     } catch (e) { 
       console.error(e); 
-      // Revertimos en caso de error (opcional si el canal de Realtime es rápido)
     }
   };
 
   const handleRead = async (id) => {
     try {
-      const { data } = await supabase.from('forum').select('read_by').eq('id', id).single();
-      const currentReadBy = data?.read_by || [];
+      const post = forum.find(p => p.id === id);
+      const currentReadBy = post?.read_by || [];
       if (!currentReadBy.includes(profile.id)) {
-        await supabase.from('forum').update({ read_by: [...currentReadBy, profile.id] }).eq('id', id);
+        const newReadBy = [...currentReadBy, profile.id];
+        updateOptimistic('forum', id, { read_by: newReadBy });
+        await api.put(`/data/forum/${id}`, { read_by: newReadBy });
       }
     } catch (e) { console.error(e); }
   };

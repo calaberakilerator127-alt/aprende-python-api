@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, File as FileIcon, Eye, Download, Book, PenTool, Type, FileUp, X, Save, Loader2, ArrowLeft } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useSound } from '../hooks/useSound';
@@ -114,20 +112,11 @@ export default function MaterialsView({ profile, materials, showToast, createNot
       };
 
       if (editingMaterial) {
-        const { error } = await supabase
-          .from('materials')
-          .update(materialData)
-          .eq('id', editingMaterial.id);
-        if (error) throw error;
+        await api.put(`/data/materials/${editingMaterial.id}`, materialData);
         playSound('success');
         showToast(language === 'es' ? 'Material actualizado' : 'Material updated');
       } else {
-        const { data: res, error } = await supabase
-          .from('materials')
-          .insert({ ...materialData, created_at: Date.now() })
-          .select()
-          .single();
-        if (error) throw error;
+        const { data: res } = await api.post('/data/materials', materialData);
         playSound('success');
         showToast(language === 'es' ? 'Material publicado' : 'Material published');
         createNotification(language === 'es' ? `Nuevo material: ${title}` : `New material: ${title}`, null, 'materials', res.id);
@@ -149,8 +138,12 @@ export default function MaterialsView({ profile, materials, showToast, createNot
   // Load read stats for teacher
   const fetchReadStats = async () => {
     if (!isTeacher) return;
-    const { data } = await supabase.from('content_reads').select('*').eq('content_type', 'material');
-    setContentReadData(data || []);
+    try {
+      const { data } = await api.get('/data/content_reads');
+      setContentReadData(data?.filter(r => r.content_type === 'material') || []);
+    } catch (e) {
+      console.error("Error fetching read stats:", e);
+    }
   };
 
   React.useEffect(() => {
@@ -174,8 +167,7 @@ export default function MaterialsView({ profile, materials, showToast, createNot
   const handleDelete = async (id) => {
     if(window.confirm(language === 'es' ? '¿Eliminar este material?' : 'Delete this material?')) {
       try {
-        const { error } = await supabase.from('materials').delete().eq('id', id);
-        if (error) throw error;
+        await api.delete(`/data/materials/${id}`);
         showToast(language === 'es' ? 'Material eliminado' : 'Material deleted');
       } catch (err) {
         console.error("Error deleting material:", err);

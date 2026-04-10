@@ -13,6 +13,7 @@
     "@jitsi/react-sdk": "^1.4.4",
     "@supabase/supabase-js": "^2.103.0",
     "axios": "^1.15.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "html2pdf.js": "^0.14.0",
     "lucide-react": "^1.7.0",

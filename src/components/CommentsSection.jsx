@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { MessageCircle, ThumbsUp, ThumbsDown, CornerDownRight, Trash2, Edit2, Send, Clock, User as UserIcon, MoreHorizontal, X, Check } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 
 export default function CommentsSection({ parentId, parentType, profile, comments, showToast }) {
@@ -70,7 +68,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     setIsSubmitting(true);
     try {
       setNewComment(''); // Limpiar input de inmediato para Ultra Speed
-      const { error } = await supabase.from('comments').insert({
+      await api.post('/data/comments', {
         parent_id: parentId, 
         parent_type: parentType, 
         content: newComment,
@@ -81,7 +79,6 @@ export default function CommentsSection({ parentId, parentType, profile, comment
         dislikes: [], 
         reply_to_id: null
       });
-      if (error) throw error;
     } catch (e) { 
       console.error(e); 
       setNewComment(newComment); // Restaurar si falla
@@ -96,7 +93,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     if (!replyText.trim()) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from('comments').insert({
+      await api.post('/data/comments', {
         parent_id: parentId, 
         parent_type: parentType, 
         content: replyText,
@@ -107,7 +104,6 @@ export default function CommentsSection({ parentId, parentType, profile, comment
         dislikes: [], 
         reply_to_id: commentId
       });
-      if (error) throw error;
       setReplyingTo(null);
       setReplyText('');
     } catch (e) { console.error(e); showToast(t.errorReply, 'error'); } finally { setIsSubmitting(false); }
@@ -116,8 +112,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
   const handleDelete = async (id) => {
     if (window.confirm(t.confirmDelete)) {
       try {
-        const { error } = await supabase.from('comments').delete().eq('id', id);
-        if (error) throw error;
+        await api.delete(`/data/comments/${id}`);
       } catch (e) { console.error(e); showToast(t.errorDelete, 'error'); }
     }
   };
@@ -130,11 +125,10 @@ export default function CommentsSection({ parentId, parentType, profile, comment
   const handleEdit = async (id) => {
     if (!editText.trim()) return;
     try {
-      const { error } = await supabase.from('comments').update({ 
+      await api.put(`/data/comments/${id}`, { 
         content: editText, 
         updated_at: new Date().toISOString() 
-      }).eq('id', id);
-      if (error) throw error;
+      });
       setEditingId(null);
       setEditText('');
     } catch (e) { console.error(e); showToast(t.errorEdit, 'error'); }
@@ -153,10 +147,10 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     let newRemoveList = currentRemoveList.filter(id => id !== profile.id);
 
     try {
-      await supabase.from('comments').update({ 
+      await api.put(`/data/comments/${c.id}`, { 
         [fieldToAdd]: newAddList, 
         [fieldToRemove]: newRemoveList 
-      }).eq('id', c.id);
+      });
     } catch (e) { console.error(e); }
   };
 

@@ -14,17 +14,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
-      if (!origin || allowedPatterns.some(pattern => pattern.test(origin))) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: 'https://aprende-python-theta.vercel.app',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'x-supabase-auth', 'apikey']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
   }
 });
 
@@ -34,21 +27,11 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware de CORS robusto con logs detallados
 app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir Vercel, localhost y clientes sin Origin
-    const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost(:\d+)?$/, /^http:\/\/127\.0\.0\.1(:\d+)?$/];
-    const isAllowed = !origin || allowedPatterns.some(pattern => pattern.test(origin));
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS REJECTED] Origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: 'https://aprende-python-theta.vercel.app',
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'x-supabase-auth', 'apikey'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
@@ -104,24 +87,49 @@ const verifyAdmin = async (req, res, next) => {
 
 app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+  }
+
   try {
     const passwordHash = await auth.hashPassword(password);
     await db.query('BEGIN');
+    
     const userRes = await db.query(
       'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
       [email, passwordHash]
     );
+    
+    if (!userRes.rows || userRes.rows.length === 0) {
+      throw new Error('No se pudo crear el usuario base');
+    }
+    
     const userId = userRes.rows[0].id;
+    
     await db.query(
-      'INSERT INTO profiles (id, email) VALUES ($1, $2)',
-      [userId, email]
+      'INSERT INTO profiles (id, email, is_setup) VALUES ($1, $2, $3)',
+      [userId, email, false]
     );
+    
     await db.query('COMMIT');
     const token = auth.generateToken(userId);
     res.status(201).json({ token, user: { id: userId, email } });
   } catch (err) {
     await db.query('ROLLBACK');
-    res.status(500).json({ error: 'Error al registrar usuario.' });
+    console.error('[AUTH ERROR] Fallo en registro:', {
+      error: err.message,
+      stack: err.stack,
+      email: email // Útil para depurar si ya existe
+    });
+    
+    if (err.code === '23505') { // Postgres error code para unique violation
+      return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
+    }
+    
+    res.status(500).json({ 
+      error: 'Error al registrar usuario.',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined 
+    });
   }
 });
 

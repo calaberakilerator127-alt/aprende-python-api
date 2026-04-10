@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Bell, Plus, X, Edit2, Trash2, Calendar, User, Clock, ThumbsUp, ThumbsDown, CheckCircle, Newspaper, Megaphone } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import CommentsSection from '../components/CommentsSection';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useSettings } from '../hooks/SettingsContext';
 
-export default function NewsView({ profile, news, showToast, comments = [], addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic }) {
+export default function NewsView({ profile, news, showToast, comments = [], addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic, createNotification }) {
   const { language } = useSettings();
   const isTeacher = profile.role === 'profesor';
   const [showForm, setShowForm] = useState(false);
@@ -50,26 +50,13 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
     try {
       if (editingNews) {
         updateOptimistic('news', editingNews.id, newsData);
-        const { error } = await supabase
-          .from('news')
-          .update(newsData)
-          .eq('id', editingNews.id);
-        if (error) throw error;
-        showToast(language === 'es' ? 'Aviso actualizado' : 'Announcement updated');
+        await api.put(`/data/news/${editingNews.id}`, newsData);
+        showToast(language === 'es' ? 'Noticia actualizada' : 'News updated');
       } else {
-        const { data: realRecord, error } = await supabase
-          .from('news')
-          .insert({
-            ...newsData,
-            created_at: new Date().toISOString(),
-            read_by: [],
-            likes: [],
-            dislikes: []
-          }).select().single();
-        if (error) throw error;
-        if (tempIdStr) replaceOptimistic('news', tempIdStr, realRecord);
-        showToast(language === 'es' ? 'Aviso publicado' : 'Announcement published');
-        // La notificación se gestiona vía Trigger SQL
+        const { data: res } = await api.post('/data/news', newsData);
+        if (tempIdStr) replaceOptimistic('news', tempIdStr, res);
+        showToast(language === 'es' ? 'Noticia publicada' : 'News published');
+        createNotification(language === 'es' ? `Nueva noticia: ${title}` : `New announcement: ${title}`, null, 'news', res.id);
       }
       
       setShowForm(false);
@@ -92,13 +79,13 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
   };
 
   const handleDeleteNews = async (id) => {
-    if (window.confirm(language === 'es' ? '¿Eliminar este aviso?' : 'Delete this announcement?')) {
+    if (window.confirm(language === 'es' ? '¿Eliminar esta noticia?' : 'Delete this news?')) {
+      removeOptimistic('news', id);
       try {
-        removeOptimistic('news', id);
-        const { error } = await supabase.from('news').delete().eq('id', id);
-        if (error) throw error;
-        showToast(language === 'es' ? 'Aviso eliminado' : 'Announcement deleted');
+        await api.delete(`/data/news/${id}`);
+        showToast(language === 'es' ? 'Noticia eliminada' : 'News deleted');
       } catch (e) {
+        console.error(e);
         showToast(language === 'es' ? 'Error al eliminar' : 'Error deleting', 'error');
       }
     }

@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Send, AlertTriangle, CheckCircle, ArrowLeft, ArrowRight, Save, Info, ExternalLink, Shield, ClipboardCheck, List } from 'lucide-react';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 
 /**
  * QuizPlayer: Reproductor de cuestionarios y evaluaciones.
@@ -71,7 +69,7 @@ export default function QuizPlayer({ quiz, profile, onFinish, showToast }) {
       const autoGrade = calculateAutoGrade();
       const needsReview = quiz.questions.some(q => q.type === 'open');
 
-      const { error } = await supabase.from('submissions').insert({
+      await api.post('/data/submissions', {
         activity_id: quiz.id,
         student_id: profile.id,
         student_name: profile.name,

@@ -6,12 +6,12 @@ import {
 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { supabase } from '../config/supabase';
+import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 import { logAdminAction } from '../utils/auditUtils';
 import { Shield, Trash2, Edit3, Settings as SettingsIcon } from 'lucide-react';
 
-export default function FeedbackView({ profile, feedback = [], users = [], showToast, createNotification, comments = [], addOptimistic, updateOptimistic, removeOptimistic }) {
+export default function FeedbackView({ profile, feedback = [], users = [], showToast, createNotification, comments = [], addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic }) {
   const { t, language } = useSettings();
   const [isCreating, setIsCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
@@ -47,7 +47,7 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
     if (filterStatus !== 'all') result = result.filter(r => r.status === filterStatus);
     
     if (sortBy === 'recent') {
-      result.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      result.sort((a, b) => (new Date(b.created_at || 0)) - (new Date(a.created_at || 0)));
     } else {
       result.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
     }
@@ -59,18 +59,10 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
     if (!file) return;
     setUploadingFile(true);
     try {
-      const filePath = `feedback/${profile.id}_${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
-        .from('feedback')
-        .upload(filePath, file);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('feedback')
-        .getPublicUrl(filePath);
-
-      setAttachments(prev => [...prev, { name: file.name, url: publicUrl }]);
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await api.post('/upload/feedback', formData);
+      setAttachments(prev => [...prev, { name: file.name, url: data.url }]);
       showToast(language === 'es' ? 'Archivo cargado' : 'File uploaded', 'success');
     } catch (e) {
       console.error(e);
@@ -83,6 +75,7 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
+    setIsSubmitting(true);
     const nowISO = new Date().toISOString();
     const data = {
       title,
@@ -97,17 +90,13 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
       attachments
     };
 
-    // Vuelo Optimista
     const tempId = `temp-fb-${Date.now()}`;
-    addOptimistic('feedback', { ...data, id: tempId, report_id: '...', is_optimistic: true });
-    
-    setIsCreating(false); // Cerramos el modal de inmediato para Ultra Speed
+    addOptimistic('feedback', { ...data, id: tempId, is_optimistic: true });
+    setIsCreating(false);
 
     try {
-      const { data: realRecord, error } = await supabase.from('feedback').insert(data).select().single();
-      if (error) throw error;
+      const { data: realRecord } = await api.post('/data/feedback', data);
       replaceOptimistic('feedback', tempId, realRecord);
-
       showToast(language === 'es' ? 'Reporte enviado con éxito' : 'Report submitted successfully');
       setTitle(''); setContent(''); setAttachments([]);
     } catch (e) {
@@ -122,16 +111,10 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
       ? report.likes.filter(id => id !== profile.id)
       : [...(report.likes || []), profile.id];
 
-    // Vuelo Optimista para Votos
     updateOptimistic('feedback', report.id, { likes: newLikes });
 
     try {
-      const { error } = await supabase
-        .from('feedback')
-        .update({ likes: newLikes })
-        .eq('id', report.id);
-        
-      if (error) throw error;
+      await api.put(`/data/feedback/${report.id}/like`, { likes: newLikes });
     } catch (e) { console.error(e); }
   };
 
@@ -147,14 +130,12 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
       created_at: nowISO
     };
 
-    // UI Optimista para comentario
     const tempId = `temp-c-${Date.now()}`;
     addOptimistic('comments', { ...data, id: tempId, is_optimistic: true });
     setNewComment('');
 
     try {
-      const { data: realRecord, error } = await supabase.from('comments').insert(data).select().single();
-      if (error) throw error;
+      const { data: realRecord } = await api.post('/data/comments', data);
       replaceOptimistic('comments', tempId, realRecord);
     } catch (e) { console.error(e); }
   };
@@ -169,19 +150,12 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
         category: editingCategory 
       };
       
-      // Vuelo Optimista Admin
       updateOptimistic('feedback', isEditingReport.id, changes);
       setIsEditingReport(null);
       if (selectedReport?.id === isEditingReport.id) setSelectedReport({ ...selectedReport, ...changes });
 
       try {
-        const { error } = await supabase
-          .from('feedback')
-          .update(changes)
-          .eq('id', isEditingReport.id);
-  
-        if (error) throw error;
-  
+        await api.put(`/data/feedback/${isEditingReport.id}`, changes);
         await logAdminAction(profile, 'edit_report', isEditingReport.id, isEditingReport, { ...isEditingReport, ...changes });
         showToast(language === 'es' ? 'Reporte actualizado' : 'Report updated');
       } catch (e) { 
@@ -193,14 +167,11 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
 
   const handleDeleteReport = async (report) => {
     if (window.confirm(language === 'es' ? '¿ELIMINAR este reporte permanentemente?' : 'DELETE this report permanently?')) {
-      // Borrado Optimista
       removeOptimistic('feedback', report.id);
       setSelectedReport(null);
 
       try {
-        const { error } = await supabase.from('feedback').delete().eq('id', report.id);
-        if (error) throw error;
-
+        await api.delete(`/data/feedback/${report.id}`);
         await logAdminAction(profile, 'delete_report', report.id, report);
         showToast(language === 'es' ? 'Reporte eliminado' : 'Report deleted');
       } catch (e) { console.error(e); }
@@ -208,32 +179,22 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
   };
 
   const handleUpdateStatus = async (report, newStatus) => {
-    // Estado Optimista
     updateOptimistic('feedback', report.id, { status: newStatus });
     if (selectedReport?.id === report.id) setSelectedReport({ ...selectedReport, status: newStatus });
 
     try {
-      const { error } = await supabase
-        .from('feedback')
-        .update({ status: newStatus })
-        .eq('id', report.id);
-
-      if (error) throw error;
-
+      await api.put(`/data/feedback/${report.id}/status`, { status: newStatus });
       await logAdminAction(profile, 'update_status', report.id, { status: report.status }, { status: newStatus });
-      showToast(language === 'es' ? `Regorte marcado como ${newStatus}` : `Report marked as ${newStatus}`);
+      showToast(language === 'es' ? `Reporte marcado como ${newStatus}` : `Report marked as ${newStatus}`);
     } catch (e) { console.error(e); }
   };
 
   const handleDeleteComment = async (comment) => {
     if (window.confirm(language === 'es' ? '¿Eliminar este comentario?' : 'Delete this comment?')) {
-      // Borrado Optimista Comentario
       removeOptimistic('comments', comment.id);
 
       try {
-        const { error } = await supabase.from('comments').delete().eq('id', comment.id);
-        if (error) throw error;
-
+        await api.delete(`/data/comments/${comment.id}`);
         await logAdminAction(profile, 'delete_comment', comment.id, comment);
         showToast(language === 'es' ? 'Comentario eliminado' : 'Comment deleted');
       } catch (e) { console.error(e); }

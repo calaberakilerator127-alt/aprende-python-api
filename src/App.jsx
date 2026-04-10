@@ -380,69 +380,72 @@ export default function App() {
     );
   }
 
-  if (!user || !profile || profile?.is_setup !== true) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark bg-slate-900' : 'bg-gray-50'}`}>
-        <div className="max-w-md w-full p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
-          <div className="text-center mb-8">
-            <img src="/logo.png" alt="Python Master" className="w-16 h-16 object-contain mx-auto mb-4" />
-            <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Python Master</h1>
-            <p className="text-sm mt-2 text-gray-500 dark:text-slate-400">Aprende y domina Python</p>
-          </div>
-          {!user ? (
-            <div className="space-y-4">
-               <form onSubmit={(e) => {
-                 e.preventDefault(); setAuthError(null);
-                 const formData = new FormData(e.target);
-                 const email = formData.get('email');
-                 const password = formData.get('password');
-                 if (isRegistering) {
-                   const confirmPassword = formData.get('confirmPassword');
-                   if (password !== confirmPassword) {
-                     setAuthError('Las contraseñas no coinciden.'); return;
-                   }
-                   handleEmailRegister(email, password).catch(err => setAuthError(err.message));
-                 } else {
-                   handleEmailLogin(email, password).catch(err => setAuthError(err.message));
-                 }
-               }} className="space-y-4">
-                 <input id="loginEmail" required name="email" type="email" placeholder="Email" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
-                 <input id="loginPassword" required name="password" minLength={6} type="password" placeholder="Password" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
-                 {isRegistering && <input id="confirmPassword" required name="confirmPassword" type="password" placeholder="Confirm Password" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />}
-                 <button disabled={loading} type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition shadow-md">
-                   {loading ? '...' : (isRegistering ? 'Crear Cuenta' : 'Ingresar')}
-                 </button>
-               </form>
-               <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-700 py-2.5 rounded-xl border font-semibold hover:bg-gray-50 transition shadow-sm text-sm">
-                <Globe size={18} className="text-blue-500" /> Google
-               </button>
-               <button onClick={() => { setIsRegistering(!isRegistering); setAuthError(null); }} className="w-full text-center text-sm font-medium text-indigo-600 hover:underline">
-                    {isRegistering ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
-               </button>
-               {authError && <p className="text-xs text-red-600 text-center mt-2">⚠️ {authError}</p>}
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                handleSetProfile(e.target.name.value, e.target.role.value).then(res => {
-                  if (res) showToast('Configurado'); else showToast('Error', 'error');
-                });
-              }} className="space-y-5">
-                <input id="profileName" required name="name" type="text" placeholder="Nombre completo" defaultValue={user.displayName} className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900" />
-                <select id="profileRole" required name="role" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900">
-                  <option value="">Selecciona rol</option>
-                  <option value="estudiante">Estudiante</option>
-                  <option value="profesor">Profesor</option>
-                </select>
-                <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase hover:bg-indigo-700 transition shadow-lg">Finalizar</button>
-                <button type="button" onClick={handleLogout} className="w-full mt-4 text-gray-400 text-xs font-bold hover:text-red-500 transition">Cancelar</button>
-              </form>
-            </div>
-          )}
+  // stable sub-components to prevent focus loss on re-renders
+  const AuthUI = () => (
+    <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'dark bg-slate-900' : 'bg-gray-50'}`}>
+      <div className="max-w-md w-full p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
+        <div className="text-center mb-8">
+          <img src="/logo.png" alt="Python Master" className="w-16 h-16 object-contain mx-auto mb-4" />
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">Python Master</h1>
+          <p className="text-sm mt-2 text-gray-500 dark:text-slate-400">Aprende y domina Python</p>
         </div>
+        {!user ? (
+          <div className="space-y-4">
+             <form onSubmit={(e) => {
+               e.preventDefault(); setAuthError(null);
+               const formData = new FormData(e.target);
+               const email = formData.get('email');
+               const password = formData.get('password');
+               if (isRegistering) {
+                 const confirmPassword = formData.get('confirmPassword');
+                 if (password !== confirmPassword) {
+                   setAuthError('Las contraseñas no coinciden.'); return;
+                 }
+                 handleEmailRegister(email, password).catch(err => setAuthError(err.response?.data?.error || err.message));
+               } else {
+                 handleEmailLogin(email, password).catch(err => setAuthError(err.response?.data?.error || err.message));
+               }
+             }} className="space-y-4">
+               <input id="loginEmail" required name="email" type="email" placeholder="Email" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
+               <input id="loginPassword" required name="password" minLength={6} type="password" placeholder="Password" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />
+               {isRegistering && <input id="confirmPassword" required name="confirmPassword" type="password" placeholder="Confirm Password" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" />}
+               <button disabled={loading} type="submit" className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition shadow-md">
+                 {loading ? '...' : (isRegistering ? 'Crear Cuenta' : 'Ingresar')}
+               </button>
+             </form>
+             <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-700 py-2.5 rounded-xl border font-semibold hover:bg-gray-50 transition shadow-sm text-sm">
+              <Globe size={18} className="text-blue-500" /> Google
+             </button>
+             <button onClick={() => { setIsRegistering(!isRegistering); setAuthError(null); }} className="w-full text-center text-sm font-medium text-indigo-600 hover:underline">
+                  {isRegistering ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
+             </button>
+             {authError && <p className="text-xs text-red-600 text-center mt-2">⚠️ {authError}</p>}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleSetProfile(e.target.name.value, e.target.role.value).then(res => {
+                if (res) showToast('Configurado'); else showToast('Error', 'error');
+              });
+            }} className="space-y-5">
+              <input id="profileName" required name="name" type="text" placeholder="Nombre completo" defaultValue={user.displayName} className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900" />
+              <select id="profileRole" required name="role" className="w-full px-4 py-3 rounded-xl border dark:bg-slate-900">
+                <option value="">Selecciona rol</option>
+                <option value="estudiante">Estudiante</option>
+                <option value="profesor">Profesor</option>
+              </select>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase hover:bg-indigo-700 transition shadow-lg">Finalizar</button>
+              <button type="button" onClick={handleLogout} className="w-full mt-4 text-gray-400 text-xs font-bold hover:text-red-500 transition">Cancelar</button>
+            </form>
+          </div>
+        )}
       </div>
-    );
+    </div>
+  );
+
+  if (!user || !profile || profile?.is_setup !== true) {
+    return <AuthUI />;
   }
 
   const menuItems = [
