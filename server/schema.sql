@@ -254,7 +254,8 @@ CREATE TABLE IF NOT EXISTS grading_configs (
     include_attendance BOOLEAN DEFAULT FALSE,
     teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     min_grade DECIMAL(5,2),
-    max_grade DECIMAL(5,2)
+    max_grade DECIMAL(5,2),
+    UNIQUE(teacher_id)
 );
 
 -- 16. Estadísticas y Presencia
@@ -327,6 +328,7 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 
 -- Configuraciones de Calificación
 ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS teacher_id UUID;
+ALTER TABLE grading_configs ADD CONSTRAINT grading_configs_teacher_id_key UNIQUE (teacher_id);
 
 -- Actividades
 ALTER TABLE activities ADD COLUMN IF NOT EXISTS manual_access TEXT DEFAULT 'false'; -- Cambiado a TEXT porque el log muestra que se envía 'auto'

@@ -190,11 +190,11 @@ const ALLOWED_TABLES = [
   'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
 ];
 
-// Ayudante para emitir cambios vía Sockets (Compatibilidad con Supabase Realtime names)
+// Ayudante para emitir cambios vía Sockets
 const broadcastChange = (table, eventType, data, oldData = null) => {
   io.emit('db_change', {
     table,
-    eventType: eventType,
+    eventType,
     new: data,
     old: oldData
   });
@@ -202,23 +202,7 @@ const broadcastChange = (table, eventType, data, oldData = null) => {
 
 // --- ROUTES ---
 
-// Batch GET - Obtener datos de múltiples tablas (DEBE IR ANTES de /api/data/:table)
-app.get('/api/data/all', auth.verifyToken, async (req, res) => {
-  console.log('[API] Batch fetch requested by user:', req.user.id);
-  const results = {};
-  try {
-    const promises = ALLOWED_TABLES.map(async (table) => {
-      const { rows } = await db.query(`SELECT * FROM "${table}" ORDER BY created_at DESC LIMIT 500`);
-      results[table] = rows;
-    });
-    await Promise.all(promises);
-    res.json(results);
-  } catch (err) {
-    console.error('[API] Error en /api/data/all:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// CRUD Genérico (Reemplaza múltiples endpoints específicos)
 app.get('/api/data/:table', async (req, res) => {
   const { table } = req.params;
   
@@ -243,25 +227,41 @@ app.get('/api/data/:table', async (req, res) => {
   }
 });
 
-// POST - Crear registro
+// POST - Crear registro (Soporta UPSERT si se envía ID)
 app.post('/api/data/:table', auth.verifyToken, async (req, res) => {
   const { table } = req.params;
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
-  const keys = Object.keys(req.body);
-  const values = Object.values(req.body);
+  const body = { ...req.body };
+  
+  // Si no hay created_at, lo omitimos para que la DB use el DEFAULT
+  const keys = Object.keys(body);
+  const values = Object.values(body);
   const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
   try {
-    const query = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+    let query = `INSERT INTO "${table}" (${keys.join(', ')}) VALUES (${placeholders})`;
+    
+    // Si la tabla es 'grading_configs', hacemos UPSERT por teacher_id
+    if (table === 'grading_configs') {
+      const updateClause = keys.filter(k => k !== 'teacher_id').map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+      query += ` ON CONFLICT (teacher_id) DO UPDATE SET ${updateClause}`;
+    } else if (keys.includes('id')) {
+      // Upsert genérico por ID si se proporciona
+      const updateClause = keys.filter(k => k !== 'id').map((k, i) => `"${k}" = $${i + 1}`).join(', ');
+      query += ` ON CONFLICT (id) DO UPDATE SET ${updateClause}`;
+    }
+
+    query += ` RETURNING *`;
+    
     const { rows } = await db.query(query, values);
     const newRecord = rows[0];
     
     broadcastChange(table, 'INSERT', newRecord);
     res.status(201).json(newRecord);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: `Error creando registro en ${table}` });
+    console.error(`Error en POST /api/data/${table}:`, err.message);
+    res.status(500).json({ error: `Error procesando registro en ${table}: ${err.message}` });
   }
 });
 
