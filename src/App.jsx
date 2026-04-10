@@ -325,7 +325,20 @@ export default function App() {
   };
 
   const handleDeleteNotification = async (id) => {
-     try { await api.delete(`/data/notifications/${id}`); } catch (e) { console.error(e) }
+    try { await api.delete(`/data/notifications/${id}`); } catch (e) { console.error(e) }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      // Eliminar todas las notificaciones visibles secuencialmente o en paralelo
+      const promises = notifications.map(notif => api.delete(`/data/notifications/${notif.id}`));
+      await Promise.all(promises);
+      if (notificationsOpen) setNotificationsOpen(false);
+      showToast(language === 'es' ? 'Notificaciones limpiadas' : 'Notifications cleared');
+    } catch (e) {
+      console.error("Error clearing notifications:", e);
+      showToast('Error al limpiar notificaciones', 'error');
+    }
   };
 
   // Pantalla de carga persistente
