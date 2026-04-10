@@ -13,7 +13,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['https://aprende-python-theta.vercel.app', 'https://aprende-python-4s3yqy59o-isgosk127-2503s-projects.vercel.app'],
+    origin: (origin, callback) => {
+      if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
@@ -22,9 +28,22 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
+const allowedOrigins = [
+  'https://aprende-python-theta.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: ['https://aprende-python-theta.vercel.app', 'https://aprende-python-psg1yht1h-isgosk127-2503s-projects.vercel.app'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: (origin, callback) => {
+    // Permitir si no hay origen (como apps móviles o curl) o si coincide con la lista/regla
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      console.warn('CORS bloqueado para el origen:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 app.use(express.json());
@@ -176,8 +195,12 @@ app.get('/api/data/:table', auth.verifyToken, async (req, res) => {
     const { rows } = await db.query(query);
     res.json(rows);
   } catch (err) {
-    console.error(`Error en GET /api/data/${table}:`, err);
-    res.status(500).json({ error: `Error obteniendo datos de ${table}` });
+    console.error(`Error en GET /api/data/${table}:`, err.message);
+    res.status(500).json({ 
+      error: `Error obteniendo datos de ${table}`, 
+      message: err.message,
+      detail: err.detail 
+    });
   }
 });
 
