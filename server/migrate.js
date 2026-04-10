@@ -53,6 +53,7 @@ async function runMigrations() {
     
     // Configuraciones
     `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS teacher_id UUID`,
+    `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS weights JSONB DEFAULT '{}'`,
 
     // Actividades - Corregir tipo de dato a TEXT para aceptar 'auto'
     `ALTER TABLE activities ALTER COLUMN manual_access TYPE TEXT USING manual_access::text`
