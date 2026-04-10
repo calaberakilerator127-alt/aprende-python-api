@@ -202,9 +202,9 @@ const broadcastChange = (table, eventType, data, oldData = null) => {
 
 // --- ROUTES ---
 
-// CRUD Genérico (Reemplaza múltiples endpoints específicos)
-// Batch GET - Obtener datos de múltiples tablas en una sola petición
+// Batch GET - Obtener datos de múltiples tablas (DEBE IR ANTES de /api/data/:table)
 app.get('/api/data/all', auth.verifyToken, async (req, res) => {
+  console.log('[API] Batch fetch requested by user:', req.user.id);
   const results = {};
   try {
     const promises = ALLOWED_TABLES.map(async (table) => {
@@ -214,7 +214,7 @@ app.get('/api/data/all', auth.verifyToken, async (req, res) => {
     await Promise.all(promises);
     res.json(results);
   } catch (err) {
-    console.error('Error en GET /api/data/all:', err.message);
+    console.error('[API] Error en /api/data/all:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
