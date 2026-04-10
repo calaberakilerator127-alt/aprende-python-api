@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
+  --color-slate-50: #f8fafc;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply transition-colors duration-300 text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-slate-900;
+  }
+  /* Accessible focus states globally */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 transition-shadow;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+  .animate-bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out forwards;
+  }
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  .glass-card {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+  }
+  .dark-panel {
+    @apply bg-slate-900 dark:bg-slate-950 border border-slate-800 shadow-2xl;
+  }
+  /* Hover scale effects with spring feeling */
+  .hover-spring {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:translate-y-0 active:shadow-sm;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  80% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-slate-800 rounded-full border-2 border-transparent bg-clip-padding;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-slate-700;
+}
+
+/* Editor React Quill Custom Theme */
+.dark .ql-toolbar {
+  @apply bg-slate-800 border-slate-700/50;
+}
+.dark .ql-container {
+  @apply bg-slate-900/60 border-slate-700/50 text-slate-100;
+}
+.dark .ql-editor {
+  @apply bg-slate-900/30 min-h-[400px];
+}
+.dark .ql-editor.ql-blank::before {
+  @apply text-slate-500! font-medium;
+}
+/* Enhance visibility of colored text in dark mode */
+.dark .ql-editor span[style*="color: rgb(255, 0, 0)"],
+.dark .ql-editor span[style*="color: red"] {
+  color: #ff5f5f !important; /* Lighter red for dark mode */
+}
+/* Force black or very dark text to be readable in dark mode */
+.dark .ql-editor [style*="color: rgb(0, 0, 0)"],
+.dark .ql-editor [style*="color: #000000"],
+.dark .ql-editor [style*="color: #000"],
+.dark .ql-editor [style*="color: black"],
+.dark .ql-editor [style*="color: #1a1a1a"],
+.dark .ql-editor [style*="color: #222"],
+.dark .ql-editor span:not([style*="color"]),
+.dark .ql-editor p:not([style*="color"]),
+.dark .ql-editor li:not([style*="color"]) {
+  color: #e2e8f0 !important;
+}
+.dark .ql-stroke {
+  @apply stroke-slate-300;
+}
+.dark .ql-fill {
+  @apply fill-slate-300;
+}
+.dark .ql-picker {
+  @apply text-slate-300;
+}
+.dark .ql-picker-options {
+  @apply bg-slate-800 border-slate-700 text-slate-300;
+}
+.dark .ql-picker-item:hover, .dark .ql-picker-item.ql-selected {
+  @apply text-indigo-400;
+}
+
+/* Tooltip nativo Tailwind */
+[data-tooltip] {
+  @apply relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  @apply absolute z-[150] invisible opacity-0 whitespace-nowrap px-3 py-1.5 bg-gray-900 dark:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-xl transition-all duration-200 pointer-events-none;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -4px) scale(0.95);
+  margin-top: 8px;
+}
+
+[data-tooltip]:hover::after, [data-tooltip]:focus::after {
+  @apply visible opacity-100;
+  transform: translate(-50%, 0) scale(1);
+}
