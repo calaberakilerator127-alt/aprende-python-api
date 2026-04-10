@@ -46,6 +46,14 @@ async function runMigrations() {
       `ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ`,
       `ALTER TABLE events ADD COLUMN IF NOT EXISTS assigned_to UUID[] DEFAULT '{}'`,
       `ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'activa'`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS link TEXT`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'normal'`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS is_priority BOOLEAN DEFAULT FALSE`,
+
+      // Asistencia (Attendance)
+      `ALTER TABLE attendance ADD COLUMN IF NOT EXISTS event_id UUID REFERENCES events(id) ON DELETE CASCADE`,
+      `ALTER TABLE attendance ADD COLUMN IF NOT EXISTS is_present BOOLEAN DEFAULT TRUE`,
+      `ALTER TABLE attendance ADD COLUMN IF NOT EXISTS marked_by UUID REFERENCES users(id)`,
 
       // Materiales
       `ALTER TABLE materials ADD COLUMN IF NOT EXISTS content_type TEXT`,

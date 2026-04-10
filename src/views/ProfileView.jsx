@@ -4,6 +4,7 @@ import api from '../config/api';
 import { useSettings } from '../hooks/SettingsContext';
 import { useSound } from '../hooks/useSound';
 import { isUserOnline, formatLastSeen } from '../utils/presenceUtils';
+import { uploadFileWithProgress } from '../utils/fileUpload';
 
 export default function ProfileView({ profile, isOwnProfile = true, updateProfileData, handleDeleteAccount, showToast, attendance = [], events = [], currentUserRole, handlePasswordChange, handleAdminResetPassword, users = [] }) {
   const { 
@@ -106,7 +107,6 @@ export default function ProfileView({ profile, isOwnProfile = true, updateProfil
 
     setUploading(true);
     try {
-      const { uploadFileWithProgress } = await import('../utils/fileUpload');
       const uploaded = await uploadFileWithProgress(file, 'avatars');
       const success = await updateProfileData({ photo_url: uploaded.data });
       if (success) {

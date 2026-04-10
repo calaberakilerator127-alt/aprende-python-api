@@ -144,6 +144,9 @@ CREATE TABLE IF NOT EXISTS events (
     author_id UUID REFERENCES users(id),
     assigned_to UUID[] DEFAULT '{}',
     status TEXT DEFAULT 'activa',
+    link TEXT,
+    category TEXT DEFAULT 'normal',
+    is_priority BOOLEAN DEFAULT FALSE,
     activity_id UUID REFERENCES activities(id) ON DELETE CASCADE
 );
 
@@ -162,6 +165,9 @@ CREATE TABLE IF NOT EXISTS attendance (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     activity_id UUID REFERENCES activities(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+    is_present BOOLEAN DEFAULT TRUE,
+    marked_by UUID REFERENCES users(id),
     status TEXT DEFAULT 'presente'
 );
 
