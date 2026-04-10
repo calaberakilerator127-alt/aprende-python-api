@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS activities (
     questions JSONB DEFAULT '[]',
     time_limit INTEGER,
     password TEXT,
-    manual_access BOOLEAN DEFAULT FALSE
+    manual_access TEXT DEFAULT 'false'
 );
 
 -- 4. Entregas (Submissions)
@@ -59,7 +59,10 @@ CREATE TABLE IF NOT EXISTS submissions (
     grade DECIMAL(5,2),
     type TEXT,
     content JSONB DEFAULT '{}', -- Texto, Código, Respuestas de Quiz
-    feedback TEXT,
+    html_content TEXT, -- Contenido enriquecido
+    teacher_feedback TEXT,
+    rubric_scores JSONB DEFAULT '{}',
+    attachments JSONB[] DEFAULT '{}',
     graded_by UUID REFERENCES users(id),
     graded_at TIMESTAMPTZ
 );
@@ -72,6 +75,7 @@ CREATE TABLE IF NOT EXISTS materials (
     description TEXT,
     file_url TEXT,
     type TEXT, -- 'pdf', 'video', 'link'
+    content_type TEXT, -- Alias para el frontend
     author_id UUID REFERENCES users(id)
 );
 
@@ -131,10 +135,14 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     title TEXT NOT NULL,
     description TEXT,
-    start_time TIMESTAMPTZ NOT NULL,
-    end_time TIMESTAMPTZ NOT NULL,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    start_date TIMESTAMPTZ, -- Alias para compatibilidad
+    end_date TIMESTAMPTZ, -- Alias para compatibilidad
     color TEXT,
     author_id UUID REFERENCES users(id),
+    assigned_to UUID[] DEFAULT '{}',
+    status TEXT DEFAULT 'activa',
     activity_id UUID REFERENCES activities(id) ON DELETE CASCADE
 );
 
@@ -194,7 +202,9 @@ CREATE TABLE IF NOT EXISTS comments (
     target_type TEXT NOT NULL, -- 'forum', 'activity', etc.
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     author_name TEXT,
-    text TEXT NOT NULL,
+    author_photo TEXT,
+    text TEXT,
+    content TEXT, -- Alias para compatibilidad
     parent_id UUID REFERENCES comments(id) ON DELETE CASCADE -- Para respuestas
 );
 
@@ -206,6 +216,7 @@ CREATE TABLE IF NOT EXISTS saved_codes (
     code TEXT,
     language TEXT,
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    author_name TEXT,
     is_public BOOLEAN DEFAULT FALSE
 );
 
@@ -214,7 +225,8 @@ CREATE TABLE IF NOT EXISTS saved_notes (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     title TEXT NOT NULL,
     content TEXT,
-    author_id UUID REFERENCES users(id) ON DELETE CASCADE
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    author_name TEXT
 );
 
 -- 15. Feedback y Configuración de Calificaciones
@@ -223,8 +235,11 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     user_id UUID REFERENCES users(id),
     type TEXT, -- 'bug', 'suggestion', etc.
-    message TEXT NOT NULL,
-    status TEXT DEFAULT 'pendiente'
+    message TEXT,
+    content TEXT, -- Alias para compatibilidad
+    status TEXT DEFAULT 'pendiente',
+    author_name TEXT,
+    author_photo TEXT
 );
 
 CREATE TABLE IF NOT EXISTS grading_configs (
@@ -232,6 +247,11 @@ CREATE TABLE IF NOT EXISTS grading_configs (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     category TEXT NOT NULL,
     weight DECIMAL(5,2),
+    weights JSONB DEFAULT '{}',
+    grade_scale DECIMAL(5,2) DEFAULT 10,
+    attendance_weight DECIMAL(5,2) DEFAULT 0,
+    include_attendance BOOLEAN DEFAULT FALSE,
+    teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
     min_grade DECIMAL(5,2),
     max_grade DECIMAL(5,2)
 );

@@ -22,7 +22,8 @@ const io = new Server(server, {
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'x-supabase-auth', 'apikey']
   }
 });
 
@@ -30,25 +31,21 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// Middleware de CORS Manual y Diagnóstico (Super-robusto)
-app.use((req, res, next) => {
-  const origin = req.header('Origin');
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, x-supabase-auth, apikey');
-  
-  // Registrar peticiones para depuración
-  console.log(`${req.method} ${req.url} - Origin: ${origin}`);
-
-  // Responder inmediatamente a Preflights (OPTIONS)
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
+// Middleware de CORS robusto (Reemplaza el manual anterior)
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir Vercel, localhost y clientes sin Origin (herramientas/móviles)
+    if (!origin || origin.endsWith('.vercel.app') || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS BLOQUEADO para origen: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'x-supabase-auth', 'apikey'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
 
 app.use(express.json());
 
@@ -361,12 +358,25 @@ io.on('connection', (socket) => {
 
 // --- MANEJADOR DE ERRORES GLOBAL ---
 app.use((err, req, res, next) => {
-  console.error('CRITICAL SERVER ERROR:', err);
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(500).json({ 
-    error: 'Error crítico en el servidor',
-    message: err.message
+  console.error('SERVER ERROR:', {
+    message: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.url,
+    body: req.body
+  });
+
+  // Asegurar headers CORS en caso de error para que el frontend pueda leer el mensaje
+  const origin = req.header('Origin');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.status(err.status || 500).json({ 
+    error: true,
+    message: err.message || 'Error interno del servidor',
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 

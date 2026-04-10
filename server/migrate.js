@@ -1,75 +1,98 @@
 const db = require('./db');
+const fs = require('fs');
+const path = require('path');
 
 /**
- * Script de migración exhaustivo para asegurar compatibilidad total.
+ * Script de migración robusto que inicializa el esquema y sincroniza columnas faltantes.
  */
 async function runMigrations() {
-  console.log('--- INICIANDO MIGRACIÓN INTEGRAL DE BASE DE DATOS ---');
+  console.log('--- [MIGRACIÓN] Iniciando proceso de estabilización de Base de Datos ---');
   
-  const ALLOWED_TABLES = [
-    'profiles', 'settings', 'news', 'changelog', 'forum', 'comments',
-    'saved_codes', 'saved_notes', 'feedback', 'grading_configs', 'events',
-    'call_logs', 'attendance', 'content_reads', 'presence', 'typing',
-    'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
-  ];
-
-  for (const table of ALLOWED_TABLES) {
-    try {
-      // 1. Asegurar created_at y updated_at en TODAS las tablas
-      await db.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`);
-      await db.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
-    } catch (err) {
-      // Ignorar si la tabla no existe aún o si ya tiene las columnas
+  try {
+    // 1. Ejecutar schema.sql para asegurar tablas base
+    const schemaPath = path.join(__dirname, 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      console.log('--- [MIGRACIÓN] Cargando schema.sql ---');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+      await db.query(schemaSql);
+      console.log('--- [MIGRACIÓN] schema.sql ejecutado correctamente ---');
     }
-  }
 
-  const specificMigrations = [
-    // Noticias
-    `ALTER TABLE news ADD COLUMN IF NOT EXISTS author_name TEXT`,
-    `ALTER TABLE news ADD COLUMN IF NOT EXISTS read_by UUID[] DEFAULT '{}'`,
-    `ALTER TABLE news ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0`,
-    `ALTER TABLE news ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0`,
+    // 2. Parches de Sincronización (Asegurar columnas específicas que el frontend requiere)
+    const syncPatches = [
+      // Perfiles
+      `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'estudiante'`,
+      `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_setup BOOLEAN DEFAULT FALSE`,
+      
+      // Grading Configs (Critico para GradesView)
+      `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS weights JSONB DEFAULT '{}'`,
+      `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS grade_scale DECIMAL(5,2) DEFAULT 10`,
+      `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS attendance_weight DECIMAL(5,2) DEFAULT 0`,
+      `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS include_attendance BOOLEAN DEFAULT FALSE`,
+      `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS teacher_id UUID`,
 
-    // Foro
-    `ALTER TABLE forum ADD COLUMN IF NOT EXISTS author_name TEXT`,
-    `ALTER TABLE forum ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE`,
-    `ALTER TABLE forum ADD COLUMN IF NOT EXISTS read_by UUID[] DEFAULT '{}'`,
-    `ALTER TABLE forum ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0`,
-    `ALTER TABLE forum ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0`,
+      // Eventos (Critico para Calendario)
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS assigned_to UUID[] DEFAULT '{}'`,
+      `ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'activa'`,
 
-    // Comentarios
-    `ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_type TEXT`,
-    `ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_name TEXT`,
-    `ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_photo TEXT`,
-    `ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id UUID`,
+      // Materiales
+      `ALTER TABLE materials ADD COLUMN IF NOT EXISTS content_type TEXT`,
 
-    // Feedback
-    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_name TEXT`,
-    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_photo TEXT`,
-    `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS attachments TEXT[] DEFAULT '{}'`,
+      // Saved Codes & Notes
+      `ALTER TABLE saved_codes ADD COLUMN IF NOT EXISTS author_name TEXT`,
+      `ALTER TABLE saved_notes ADD COLUMN IF NOT EXISTS author_name TEXT`,
 
-    // Eventos
-    `ALTER TABLE events ADD COLUMN IF NOT EXISTS date TIMESTAMPTZ`,
-    
-    // Configuraciones
-    `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS teacher_id UUID`,
-    `ALTER TABLE grading_configs ADD COLUMN IF NOT EXISTS weights JSONB DEFAULT '{}'`,
+      // Feedback & Comentarios
+      `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS content TEXT`,
+      `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_name TEXT`,
+      `ALTER TABLE feedback ADD COLUMN IF NOT EXISTS author_photo TEXT`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS content TEXT`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_name TEXT`,
+      `ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_photo TEXT`,
 
-    // Actividades - Corregir tipo de dato a TEXT para aceptar 'auto'
-    `ALTER TABLE activities ALTER COLUMN manual_access TYPE TEXT USING manual_access::text`
-  ];
+      // Entregas (Submissions)
+      `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS html_content TEXT`,
+      `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS teacher_feedback TEXT`,
+      `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS rubric_scores JSONB DEFAULT '{}'`,
+      `ALTER TABLE submissions ADD COLUMN IF NOT EXISTS attachments JSONB[] DEFAULT '{}'`,
 
-  for (const query of specificMigrations) {
-    try {
-      await db.query(query);
-    } catch (err) {
-      if (!err.message.includes('already exists')) {
-        console.error('Error en migración específica:', err.message);
+      // Actividades
+      `ALTER TABLE activities ALTER COLUMN manual_access TYPE TEXT USING manual_access::text`
+    ];
+
+    for (const sql of syncPatches) {
+      try {
+        await db.query(sql);
+      } catch (err) {
+        // Ignorar errores si la columna ya existe o errores menores
+        if (!err.message.includes('already exists')) {
+          console.warn(`[MIGRACIÓN] Aviso en parche: ${err.message}`);
+        }
       }
     }
-  }
 
-  console.log('--- MIGRACIÓN INTEGRAL COMPLETADA ---');
+    // 3. Asegurar created_at y updated_at en todas las tablas importantes
+    const tables = [
+      'profiles', 'settings', 'news', 'changelog', 'forum', 'comments',
+      'saved_codes', 'saved_notes', 'feedback', 'grading_configs', 'events',
+      'call_logs', 'attendance', 'content_reads', 'presence', 'typing',
+      'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
+    ];
+
+    for (const table of tables) {
+      try {
+        await db.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`);
+        await db.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`);
+      } catch (e) { /* Ignorar si falla por tabla inexistente */ }
+    }
+
+    console.log('--- [MIGRACIÓN] Proceso de estabilización completado con éxito ---');
+  } catch (err) {
+    console.error('--- [MIGRACIÓN] ERROR CRÍTICO:', err.message);
+    throw err; // Re-lanzar para que index.js sepa que falló
+  }
 }
 
 module.exports = runMigrations;
