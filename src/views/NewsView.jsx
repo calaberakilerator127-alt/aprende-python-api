@@ -22,10 +22,10 @@ export default function NewsView({ profile, news, showToast, comments = [], addO
     
     setIsSubmitting(true);
     const newsData = {
-      title, 
-      content,
-      author_id: profile.id,
-      author_name: profile.name,
+      title: title.trim(),
+      content: content.trim(),
+      author_id: profile?.id,
+      author_name: profile?.name || 'Profesor',
       updated_at: new Date().toISOString()
     };
 

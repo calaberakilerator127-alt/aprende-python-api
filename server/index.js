@@ -240,6 +240,18 @@ app.post('/api/data/:table', auth.verifyToken, async (req, res) => {
   const { table } = req.params;
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
+  // Validación de cuerpo vacío
+  if (!req.body || Object.keys(req.body).length === 0) {
+    return res.status(400).json({ error: 'El cuerpo de la petición está vacío o es inválido' });
+  }
+
+  // Validación específica para noticias
+  if (table === 'news') {
+    if (!req.body.title || !req.body.content) {
+      return res.status(400).json({ error: 'El título y el contenido son obligatorios' });
+    }
+  }
+
   const body = { ...req.body };
   
   // Si no hay created_at, lo omitimos para que la DB use el DEFAULT
