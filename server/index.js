@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('./db');
 const auth = require('./auth');
+const runMigrations = require('./migrate');
 require('dotenv').config({ path: '../.env.server' });
 
 const app = express();
@@ -361,6 +362,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Servidor API & Realtime corriendo en http://localhost:${PORT}`);
-});
+// Arrancar servidor
+async function startServer() {
+  await runMigrations();
+  server.listen(PORT, () => {
+    console.log(`Servidor API & Realtime corriendo en http://localhost:${PORT}`);
+  });
+}
+
+startServer();
