@@ -41,34 +41,33 @@ export function useSupabaseData(user) {
       socket.emit('user_online', { userId: user.id });
     }
 
-    // 1. Carga inicial de datos desde el nuevo Backend
+    // 1. Carga inicial de datos desde el nuevo Backend (Batch)
     const fetchData = async () => {
-      const fetchTable = async (table, setter) => {
-        try {
-          const { data } = await api.get(`/data/${table}`);
-          if (data) setter(data);
-        } catch (e) {
-          console.error(`Error cargando tabla ${table}:`, e);
+      try {
+        const { data } = await api.get('/data/all');
+        if (data) {
+          if (data.profiles) setUsers(data.profiles);
+          if (data.activities) setActivities(data.activities);
+          if (data.submissions) setSubmissions(data.submissions);
+          if (data.materials) setMaterials(data.materials);
+          if (data.events) setEvents(data.events);
+          if (data.notifications) setNotifications(data.notifications);
+          if (data.call_logs) setCallLogs(data.call_logs);
+          if (data.attendance) setAttendance(data.attendance);
+          if (data.news) setNews(data.news);
+          if (data.forum) setForum(data.forum);
+          if (data.comments) setComments(data.comments);
+          if (data.saved_codes) setSavedCodes(data.saved_codes);
+          if (data.saved_notes) setSavedNotes(data.saved_notes);
+          if (data.feedback) setFeedback(data.feedback);
+          if (data.changelog) setChangelog(data.changelog);
+          if (data.grading_configs) setGradingConfigs(data.grading_configs);
+          if (data.messages) setGlobalMessages(data.messages);
         }
-      };
-
-      fetchTable('profiles', setUsers);
-      fetchTable('activities', setActivities);
-      fetchTable('submissions', setSubmissions);
-      fetchTable('materials', setMaterials);
-      fetchTable('events', setEvents);
-      fetchTable('notifications', setNotifications);
-      fetchTable('call_logs', setCallLogs);
-      fetchTable('attendance', setAttendance);
-      fetchTable('news', setNews);
-      fetchTable('forum', setForum);
-      fetchTable('comments', setComments);
-      fetchTable('saved_codes', setSavedCodes);
-      fetchTable('saved_notes', setSavedNotes);
-      fetchTable('feedback', setFeedback);
-      fetchTable('changelog', setChangelog);
-      fetchTable('grading_configs', setGradingConfigs);
-      fetchTable('messages', setGlobalMessages);
+      } catch (e) {
+        console.error("Error cargando datos por lote:", e);
+        // Fallback or retry logic could go here
+      }
     };
 
     fetchData();
@@ -82,7 +81,6 @@ export function useSupabaseData(user) {
 
       setter(prev => {
         if (eventType === 'INSERT') {
-          // Evitar duplicados si el optimista ya lo insertó
           if (prev.some(item => item.id === newRecord.id)) return prev;
           return [newRecord, ...prev];
         }
@@ -90,7 +88,7 @@ export function useSupabaseData(user) {
           return prev.map(item => item.id === newRecord.id ? { ...item, ...newRecord } : item);
         }
         if (eventType === 'DELETE') {
-          return prev.filter(item => item.id !== oldRecord.id);
+          return prev.filter(item => item.id !== (oldRecord?.id || payload.oldData?.id));
         }
         return prev;
       });

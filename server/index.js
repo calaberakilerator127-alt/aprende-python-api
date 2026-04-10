@@ -190,19 +190,35 @@ const ALLOWED_TABLES = [
   'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
 ];
 
-// Ayudante para emitir cambios vía Sockets
+// Ayudante para emitir cambios vía Sockets (Compatibilidad con Supabase Realtime names)
 const broadcastChange = (table, eventType, data, oldData = null) => {
   io.emit('db_change', {
     table,
-    type: eventType,
-    data,
-    oldData
+    eventType: eventType,
+    new: data,
+    old: oldData
   });
 };
 
 // --- ROUTES ---
 
 // CRUD Genérico (Reemplaza múltiples endpoints específicos)
+// Batch GET - Obtener datos de múltiples tablas en una sola petición
+app.get('/api/data/all', auth.verifyToken, async (req, res) => {
+  const results = {};
+  try {
+    const promises = ALLOWED_TABLES.map(async (table) => {
+      const { rows } = await db.query(`SELECT * FROM "${table}" ORDER BY created_at DESC LIMIT 500`);
+      results[table] = rows;
+    });
+    await Promise.all(promises);
+    res.json(results);
+  } catch (err) {
+    console.error('Error en GET /api/data/all:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/data/:table', async (req, res) => {
   const { table } = req.params;
   
