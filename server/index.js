@@ -36,10 +36,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: (origin, callback) => {
     // Permitir Vercel, localhost y clientes sin Origin
-    const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+    const allowedPatterns = [/^https:\/\/.*\.vercel\.app$/, /^http:\/\/localhost(:\d+)?$/, /^http:\/\/127\.0\.0\.1(:\d+)?$/];
     const isAllowed = !origin || allowedPatterns.some(pattern => pattern.test(origin));
-    
-    console.log(`[CORS] Request from: ${origin || 'no-origin'} - Allowed: ${isAllowed}`);
     
     if (isAllowed) {
       callback(null, true);

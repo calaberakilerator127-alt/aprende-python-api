@@ -1,4 +1,5 @@
 -- ESQUEMA DE BASE DE DATOS PARA APRENDE PYTHON (INDIE BACKEND)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 1. Usuarios e Identidad (Reemplazo de auth.users de Supabase)
 CREATE TABLE IF NOT EXISTS users (
