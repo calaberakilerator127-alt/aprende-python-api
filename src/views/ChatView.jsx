@@ -394,7 +394,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
                  className={`w-full text-left px-5 py-4 rounded-3xl flex items-center gap-4 transition-all ${activeChat.otherUserId === chat.otherUserId && !showCallLogs ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30 -translate-y-1' : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'}`}
                >
                  <div className={`w-12 h-12 rounded-2xl border-2 flex items-center justify-center font-black text-sm relative ${activeChat.otherUserId === chat.otherUserId ? 'bg-white/20 border-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 border-gray-100 dark:border-slate-600 text-gray-500'}`}>
-                   {chat.name.charAt(0)}
+                   {chat.name?.charAt(0) || '?'}
                    {(() => {
                      const otherUser = users.find(u => u.id === chat.otherUserId);
                      const isOnline = otherUser?.status === 'online';
@@ -503,7 +503,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
                         {activeChat.type === 'group' && currentChatGroup?.imageUrl ? (
                            <img src={currentChatGroup.imageUrl} alt="" className="w-full h-full object-cover" />
                         ) : (
-                           activeChat.name.charAt(0)
+                           activeChat.name?.charAt(0) || '?'
                         )}
                      </div>
                      <div className="overflow-hidden">
@@ -643,7 +643,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
                                    onClick={() => { setSelectedUserId(msgSenderId); setShowUserInfo(true); }}
                                    className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center font-black text-xs shadow-md uppercase cursor-pointer hover:scale-110 transition-transform"
                                  >
-                                   {(msg.sender_name || msg.senderName)?.charAt(0)}
+                                   {msg.sender_name?.charAt(0) || msg.senderName?.charAt(0) || '?'}
                                  </div>
                                  <span 
                                    onClick={() => { setSelectedUserId(msgSenderId); setShowUserInfo(true); }}
@@ -853,7 +853,7 @@ export default function ChatView({ profile, users, createNotification, onOpenCal
                            <input type="checkbox" checked={groupMembers.includes(u.id)} onChange={e => e.target.checked ? setGroupMembers([...groupMembers, u.id]) : setGroupMembers(groupMembers.filter(id => id !== u.id))} className="hidden" />
                          </div>
                       ) : null}
-                      <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-lg uppercase shadow-sm group-hover:scale-110 transition-transform">{u.name.charAt(0)}</div>
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-lg uppercase shadow-sm group-hover:scale-110 transition-transform">{u.name?.charAt(0) || '?'}</div>
                       <div className="flex-1 overflow-hidden">
                         <p className="font-black text-base truncate text-gray-900 dark:text-gray-100">{u.name}</p>
                         <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{u.role || 'Estudiante'}</p>
@@ -938,7 +938,7 @@ function UserInfoPanel({ user, onClose, onMessage, isBlocked, onToggleBlock, lan
             
             <div className="flex flex-col items-center gap-4 relative z-10">
                <div className="w-28 h-28 rounded-[2.5rem] bg-white text-indigo-600 flex items-center justify-center font-black text-4xl shadow-2xl border-4 border-white/30 truncate">
-                  {user.name.charAt(0)}
+                  {user.name?.charAt(0) || '?'}
                </div>
                <div>
                   <h2 className="text-3xl font-black tracking-tighter">{user.name}</h2>
@@ -1063,7 +1063,7 @@ function GroupInfoPanel({ group, isOwner, users, onClose, onUpdateGroup, onDelet
                  {group.imageUrl ? (
                     <img src={group.imageUrl} alt={group.name} className="w-full h-full object-cover" />
                  ) : (
-                    group.name.charAt(0)
+                    group.name?.charAt(0) || '?'
                  )}
                  {isOwner && (
                     <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/icon:opacity-100 flex items-center justify-center transition-all rounded-[2rem] cursor-pointer">
@@ -1136,7 +1136,7 @@ function GroupInfoPanel({ group, isOwner, users, onClose, onUpdateGroup, onDelet
                           {availableUsers.map(u => (
                              <div key={u.id} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border dark:border-slate-700">
                                 <div className="flex items-center gap-2 overflow-hidden">
-                                   <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center font-black text-xs uppercase">{u.name.charAt(0)}</div>
+                                   <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center font-black text-xs uppercase">{u.name?.charAt(0) || '?'}</div>
                                    <p className="text-xs font-black truncate text-gray-700 dark:text-gray-200">{u.name}</p>
                                 </div>
                                 <button 
@@ -1154,7 +1154,7 @@ function GroupInfoPanel({ group, isOwner, users, onClose, onUpdateGroup, onDelet
                  {groupMembers.map(member => (
                     <div key={member.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-all group">
                        <div onClick={() => onOpenMemberInfo?.(member.id)} className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center font-black text-sm uppercase cursor-pointer transition-transform hover:scale-110">
-                          {member.name.charAt(0)}
+                          {member.name?.charAt(0) || '?'}
                        </div>
                        <div className="flex-1 min-w-0">
                           <p onClick={() => onOpenMemberInfo?.(member.id)} className="font-black text-sm text-gray-800 dark:text-white truncate cursor-pointer hover:text-indigo-600">{member.name}</p>

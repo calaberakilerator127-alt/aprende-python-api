@@ -162,7 +162,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     return (
       <div key={c.id} className={`flex gap-4 mt-6 animate-fade-in ${isReply ? 'ml-12 border-l-2 border-indigo-50 dark:border-indigo-900/40 pl-6' : ''}`}>
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-black shadow-sm ring-2 ring-white dark:ring-slate-800 transition-transform hover:scale-110 ${isReply ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600'}`}>
-           {(c.author_name || "?").charAt(0).toUpperCase()}
+           {(c.author_name || "").charAt(0).toUpperCase() || "?"}
         </div>
         
         <div className="flex-1 space-y-3">
@@ -254,7 +254,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
        
        <form onSubmit={handleAddComment} className="flex gap-4 mb-10 group/form">
           <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20 font-black text-xl uppercase ring-4 ring-indigo-50 dark:ring-indigo-900/20 group-focus-within/form:scale-110 transition-transform">
-            {(profile.name || "?").charAt(0)}
+            {(profile?.name || "").charAt(0) || "?"}
           </div>
           <div className="flex-1 relative">
             <input 

@@ -1,12 +1,19 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-violet-600: #7c3aed;
   --color-slate-950: #020617;
   --color-slate-900: #0f172a;
   --color-slate-800: #1e293b;
   --color-slate-50: #f8fafc;
+  
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
 }
 
 @layer base {
@@ -14,13 +21,17 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-family: var(--font-sans);
   }
   body {
-    @apply transition-colors duration-300 text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-slate-900;
+    @apply transition-colors duration-300 text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
   }
   /* Accessible focus states globally */
   *:focus-visible {
-    @apply outline-none ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 transition-shadow;
+    @apply outline-none ring-2 ring-violet-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-950 transition-shadow;
   }
 }
 
@@ -34,18 +45,35 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
   }
-  .animate-spin-slow {
-    animation: spin 3s linear infinite;
+  .aura-card {
+    @apply bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl border border-white/40 dark:border-slate-800/50 shadow-[0_8px_40px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_40px_rgb(0,0,0,0.3)] rounded-[2rem] transition-all duration-300;
   }
-  .glass-card {
-    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+  .aura-glass {
+    @apply bg-white/60 dark:bg-slate-950/40 backdrop-blur-2xl border-white/20 dark:border-slate-800/30;
   }
-  .dark-panel {
-    @apply bg-slate-900 dark:bg-slate-950 border border-slate-800 shadow-2xl;
+  .hover-aura {
+    @apply hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10 active:scale-[0.98] transition-all;
   }
-  /* Hover scale effects with spring feeling */
-  .hover-spring {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg active:translate-y-0 active:shadow-sm;
+  .aura-gradient-primary {
+    @apply bg-gradient-to-br from-indigo-600 to-violet-700;
+  }
+  .aura-gradient-secondary {
+    @apply bg-gradient-to-br from-blue-600 to-cyan-500;
+  }
+  .aura-gradient-danger {
+    @apply bg-gradient-to-br from-rose-600 to-pink-500;
+  }
+  .next-gen-shadow {
+    box-shadow: 0 20px 50px -12px rgba(79, 70, 229, 0.15);
+  }
+  .aura-quill .ql-toolbar {
+    @apply border-none bg-slate-50/50 dark:bg-slate-900/50 p-6 rounded-t-[2rem] transition-all;
+  }
+  .aura-quill .ql-container {
+    @apply border-none bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-b-[2rem] min-h-[500px] font-sans text-lg;
+  }
+  .aura-quill .ql-editor {
+    @apply p-10 leading-relaxed;
   }
 }
 
@@ -65,87 +93,43 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* Custom scrollbar for webkit */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-slate-800 rounded-full border-2 border-transparent bg-clip-padding;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-slate-700;
+  @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors;
 }
 
 /* Editor React Quill Custom Theme */
 .dark .ql-toolbar {
-  @apply bg-slate-800 border-slate-700/50;
+  @apply bg-slate-900 border-slate-800;
 }
 .dark .ql-container {
-  @apply bg-slate-900/60 border-slate-700/50 text-slate-100;
+  @apply bg-slate-950 border-slate-800 text-slate-100;
 }
 .dark .ql-editor {
-  @apply bg-slate-900/30 min-h-[400px];
-}
-.dark .ql-editor.ql-blank::before {
-  @apply text-slate-500! font-medium;
-}
-/* Enhance visibility of colored text in dark mode */
-.dark .ql-editor span[style*="color: rgb(255, 0, 0)"],
-.dark .ql-editor span[style*="color: red"] {
-  color: #ff5f5f !important; /* Lighter red for dark mode */
-}
-/* Force black or very dark text to be readable in dark mode */
-.dark .ql-editor [style*="color: rgb(0, 0, 0)"],
-.dark .ql-editor [style*="color: #000000"],
-.dark .ql-editor [style*="color: #000"],
-.dark .ql-editor [style*="color: black"],
-.dark .ql-editor [style*="color: #1a1a1a"],
-.dark .ql-editor [style*="color: #222"],
-.dark .ql-editor span:not([style*="color"]),
-.dark .ql-editor p:not([style*="color"]),
-.dark .ql-editor li:not([style*="color"]) {
-  color: #e2e8f0 !important;
-}
-.dark .ql-stroke {
-  @apply stroke-slate-300;
-}
-.dark .ql-fill {
-  @apply fill-slate-300;
-}
-.dark .ql-picker {
-  @apply text-slate-300;
-}
-.dark .ql-picker-options {
-  @apply bg-slate-800 border-slate-700 text-slate-300;
-}
-.dark .ql-picker-item:hover, .dark .ql-picker-item.ql-selected {
-  @apply text-indigo-400;
+  @apply min-h-[400px];
 }
 
-/* Tooltip nativo Tailwind */
+/* Tooltip Aura */
 [data-tooltip] {
   @apply relative;
 }
 
 [data-tooltip]::after {
   content: attr(data-tooltip);
-  @apply absolute z-[150] invisible opacity-0 whitespace-nowrap px-3 py-1.5 bg-gray-900 dark:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-xl transition-all duration-200 pointer-events-none;
-  top: 100%;
+  @apply absolute z-[150] invisible opacity-0 whitespace-nowrap px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-2xl transition-all duration-300 pointer-events-none;
+  top: -100%;
   left: 50%;
-  transform: translate(-50%, -4px) scale(0.95);
-  margin-top: 8px;
+  transform: translate(-50%, 8px) scale(0.9);
 }
 
-[data-tooltip]:hover::after, [data-tooltip]:focus::after {
+[data-tooltip]:hover::after {
   @apply visible opacity-100;
-  transform: translate(-50%, 0) scale(1);
+  transform: translate(-50%, -4px) scale(1);
 }

@@ -3,7 +3,7 @@ import {
   MessageSquare, Plus, Search, X, Tag, User, Calendar, 
   Edit2, Trash2, ThumbsUp, ThumbsDown, CheckCircle, 
   ChevronUp, ChevronDown, Filter, Clock, Eye, Send, 
-  MessageCircle, Hash, AlertTriangle, Shield, Flag
+  MessageCircle, Hash, AlertTriangle, Shield, Flag, BookOpen, Cpu
 } from 'lucide-react';
 import api from '../config/api';
 import CommentsSection from '../components/CommentsSection';
@@ -12,10 +12,10 @@ import 'react-quill-new/dist/quill.snow.css';
 import { useSettings } from '../hooks/SettingsContext';
 
 const CATEGORIES = {
-  all:       { es: 'Todas', en: 'All',          color: 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-300 border-gray-200 dark:border-slate-700' },
-  académico: { es: 'Académico', en: 'Academic', color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40' },
-  proyecto:  { es: 'Proyecto', en: 'Project',   color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/40' },
-  duda:      { es: 'Duda', en: 'Question',      color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40' },
+  all:       { es: 'Global', en: 'Global',       color: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700', icon: <Hash size={16}/> },
+  académico: { es: 'Académico', en: 'Academic', color: 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800', icon: <BookOpen size={16}/> },
+  proyecto:  { es: 'Proyectos', en: 'Projects',  color: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800', icon: <Cpu size={16}/> },
+  duda:      { es: 'Consultas', en: 'Support',   color: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800', icon: <AlertTriangle size={16}/> },
 };
 
 export default function ForumView({ profile, users, forum, showToast, comments = [], fetchFullRecord, addOptimistic, updateOptimistic, removeOptimistic, replaceOptimistic }) {
@@ -48,7 +48,6 @@ export default function ForumView({ profile, users, forum, showToast, comments =
 
       let tempIdStr = null;
 
-      // UI Optimista para nueva publicación
       if (!editingPost) {
         tempIdStr = `temp-${Date.now()}`;
         const optimisticPost = {
@@ -61,7 +60,7 @@ export default function ForumView({ profile, users, forum, showToast, comments =
           is_optimistic: true
         };
         addOptimistic('forum', optimisticPost);
-        setShowForm(false); // Cerramos el formulario de inmediato para Ultra Speed
+        setShowForm(false);
       }
 
       if (editingPost) {
@@ -129,7 +128,6 @@ export default function ForumView({ profile, users, forum, showToast, comments =
       : [...currentAddList, profile.id];
     let newRemoveList = currentRemoveList.filter(id => id !== profile.id);
 
-    // Salto Optimista: Actualizamos el contador/estado de inmediato en la UI global
     updateOptimistic('forum', item.id, { [fieldToAdd]: newAddList, [fieldToRemove]: newRemoveList });
 
     try {
@@ -167,117 +165,123 @@ export default function ForumView({ profile, users, forum, showToast, comments =
   }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <div className="glass-card p-6 md:p-8 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
-            <MessageSquare className="text-purple-600" size={32} />
-            {language === 'es' ? 'Foro de la Comunidad' : 'Community Forum'}
-          </h1>
-          <p className="text-gray-500 font-medium text-sm md:text-base mt-2">{language === 'es' ? 'Discusiones académicas y proyectos estudiantiles.' : 'Academic discussions and student projects.'}</p>
+    <div className="space-y-8 animate-fade-in pb-12">
+      {/* HEADER SECTION */}
+      <div className="aura-card p-0 overflow-hidden shadow-2xl">
+        <div className="aura-gradient-primary px-10 py-12 text-white flex flex-col md:flex-row justify-between items-center gap-10">
+          <div className="space-y-4 text-center md:text-left">
+            <h1 className="text-5xl font-black uppercase tracking-tighter flex items-center justify-center md:justify-start gap-4">
+              <MessageSquare className="text-white" size={56} /> 
+              {language === 'es' ? 'Nexo de Discusión' : 'Discussion Nexus'}
+            </h1>
+            <p className="text-white/60 font-black text-xs uppercase tracking-[0.3em]">{language === 'es' ? 'Inteligencia Colectiva y Colaboración' : 'Collective Intelligence & Collaboration'}</p>
+          </div>
+          
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="group flex items-center justify-center gap-6 px-10 py-6 bg-white text-indigo-600 rounded-[2rem] font-black text-xs uppercase tracking-[0.4em] shadow-3xl hover:scale-105 active:scale-95 transition-all"
+            >
+              <Plus size={24} className="group-hover:rotate-90 transition-transform"/> 
+              {language === 'es' ? 'Transmitir' : 'Broadcast'}
+            </button>
+          )}
         </div>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center justify-center gap-3 w-full md:w-auto bg-purple-600 text-white px-6 py-4 rounded-2xl hover:bg-purple-700 transition-all hover-spring shadow-lg shadow-purple-500/30 font-bold focus-visible:ring-inset"
-          >
-            <Plus size={22} /> {language === 'es' ? 'Nueva Publicación' : 'New Post'}
-          </button>
-        )}
       </div>
 
-      {!showForm && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 group">
-             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors" size={20} />
-             <input
-               type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-               placeholder={language === 'es' ? "Buscar por título o autor..." : "Search by title or author..."}
-               className="w-full pl-14 pr-6 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-sm font-medium placeholder-gray-400"
-             />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {Object.entries(CATEGORIES).map(([key, val]) => (
-              <button
-                key={key}
-                onClick={() => setFilterCategory(key)}
-                className={`px-5 py-3 rounded-2xl text-sm font-black transition-all border shadow-sm focus-visible:ring-inset hover-spring ${filterCategory === key ? 'ring-2 ring-offset-1 ring-purple-500 ' + val.color : val.color + ' opacity-60 hover:opacity-100'}`}
-              >
-                {language === 'es' ? val.es : val.en}
-              </button>
-            ))}
-          </div>
+      {/* FILTER & SEARCH BAR */}
+      <div className="aura-card p-4 rounded-[2.5rem] flex flex-col lg:flex-row gap-6 items-center shadow-xl border-none">
+        <div className="relative flex-1 group w-full">
+           <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={24} />
+           <input
+             id="forumSearch"
+             name="forumSearch"
+             type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+             placeholder={language === 'es' ? "Escanear por título o remitente..." : "Scan by title or sender..."}
+             className="w-full pl-16 pr-8 py-5 bg-slate-50 dark:bg-slate-900/50 border-2 border-transparent focus:border-indigo-500 rounded-[1.8rem] outline-none transition-all shadow-inner font-black placeholder:text-slate-300"
+           />
         </div>
-      )}
+        <div className="flex gap-3 flex-wrap justify-center overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto">
+          {Object.entries(CATEGORIES).map(([key, val]) => (
+            <button
+              key={key}
+              onClick={() => setFilterCategory(key)}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 shadow-sm active:scale-95 ${filterCategory === key ? 'aura-gradient-primary text-white border-transparent shadow-indigo-500/30' : val.color + ' opacity-50 hover:opacity-100 hover:scale-105'}`}
+            >
+              {val.icon}
+              {language === 'es' ? val.es : val.en}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {showForm && (
-        <div className="glass-card p-6 md:p-10 rounded-[2.5rem] shadow-xl border border-purple-100 dark:border-slate-700/50 animate-scale-in relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-indigo-600"></div>
-          <button onClick={() => { setShowForm(false); setEditingPost(null); }} className="absolute top-6 right-6 p-3 bg-white dark:bg-slate-800 rounded-2xl text-gray-500 hover:text-red-500 hover:bg-red-50 transition-all shadow-sm focus-visible:ring-inset"><X size={24}/></button>
+        <div className="aura-card p-0 border-none shadow-2xl animate-scale-in relative overflow-hidden">
+          <div className="aura-gradient-primary px-8 py-6 flex justify-between items-center text-white">
+            <h2 className="text-xl font-black uppercase tracking-widest flex items-center gap-4">
+              <Plus size={24} />
+              {editingPost ? (language === 'es' ? 'Modificar Transmisión' : 'Modify Broadcast') : (language === 'es' ? 'Nueva Transmisión' : 'New Broadcast')}
+            </h2>
+            <button onClick={() => { setShowForm(false); setEditingPost(null); }} className="p-3 bg-white/20 hover:bg-white/40 rounded-2xl transition-all shadow-lg"><X size={24}/></button>
+          </div>
 
-          <form onSubmit={handleSavePost} className="space-y-8 mt-4">
-            <div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                <MessageSquare className="text-purple-500" />
-                {editingPost ? (language === 'es' ? 'Editar Publicación' : 'Edit Post') : (language === 'es' ? 'Crear Nueva Publicación' : 'Create New Post')}
-              </h2>
-              <p className="text-sm text-gray-500 mt-2 font-medium">{language === 'es' ? 'Tu publicación será visible para toda la clase.' : 'Your post will be visible to the whole class.'}</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form onSubmit={handleSavePost} className="p-10 space-y-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2">
-                <label htmlFor="forumTitle" className="block text-sm font-black text-gray-500 uppercase tracking-widest mb-3">{language === 'es' ? 'Título' : 'Title'}</label>
+                <label htmlFor="forumTitle" className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{language === 'es' ? 'Asunto del Nexo' : 'Nexus Subject'}</label>
                 <input
                   id="forumTitle"
                   name="forumTitle"
                   required value={title} onChange={(e) => setTitle(e.target.value)}
-                  placeholder={language === 'es' ? "¿Sobre qué quieres hablar?" : "What do you want to talk about?"}
-                  className="w-full px-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-gray-100 dark:border-slate-700 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner font-bold text-lg"
+                  placeholder={language === 'es' ? "Define el núcleo de la discusión..." : "Define the discussion core..."}
+                  className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all shadow-inner font-black text-xl placeholder:text-slate-300"
                 />
               </div>
               <div>
-                <label htmlFor="forumCategory" className="block text-sm font-black text-gray-500 uppercase tracking-widest mb-3">{language === 'es' ? 'Categoría' : 'Category'}</label>
+                <label htmlFor="forumCategory" className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{language === 'es' ? 'Fila de Datos' : 'Data Row'}</label>
                 <select
                   id="forumCategory"
                   name="forumCategory"
                   value={category} onChange={e => setCategory(e.target.value)}
-                  className="w-full px-6 py-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-gray-100 dark:border-slate-700 outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all shadow-inner font-bold"
+                  className="w-full px-6 py-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none transition-all shadow-inner font-black"
                 >
                   <option value="académico">{language === 'es' ? 'Académico' : 'Academic'}</option>
-                  <option value="proyecto">{language === 'es' ? 'Proyecto Estudiantil' : 'Student Project'}</option>
-                  <option value="duda">{language === 'es' ? 'Duda / Consulta' : 'Question'}</option>
+                  <option value="proyecto">{language === 'es' ? 'Proyecto' : 'Project'}</option>
+                  <option value="duda">{language === 'es' ? 'Consultas' : 'Support'}</option>
                 </select>
               </div>
               <div className="md:col-span-3">
-                <label htmlFor="forumContent" className="block text-sm font-black text-gray-500 uppercase tracking-widest mb-3">{language === 'es' ? 'Contenido Detallado' : 'Detailed Content'}</label>
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border-2 border-gray-100 dark:border-slate-700 overflow-hidden shadow-inner">
+                <label htmlFor="forumContent" className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{language === 'es' ? 'Codificación de Mensaje' : 'Message Encoding'}</label>
+                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-transparent focus-within:border-indigo-500 overflow-hidden shadow-inner transition-all">
                   <ReactQuill
                     id="forumContent"
                     theme="snow" value={content} onChange={setContent}
-                    className="min-h-[220px] bg-white dark:bg-slate-900"
-                    placeholder={language === 'es' ? "Escribe tu publicación aquí..." : "Write your post here..."}
+                    className="min-h-[250px] aura-quill"
+                    placeholder={language === 'es' ? "Distribuye tu conocimiento aquí..." : "Distribute your knowledge here..."}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-4 pt-4 border-t dark:border-slate-700/50">
-              <button type="button" onClick={() => { setShowForm(false); setEditingPost(null); }} className="px-8 py-4 bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 rounded-2xl font-bold hover:bg-gray-50 border border-gray-200 dark:border-slate-700 transition-all shadow-sm w-full sm:w-auto uppercase tracking-wider text-sm">
-                {language === 'es' ? 'Cancelar' : 'Cancel'}
+            <div className="flex flex-col sm:flex-row justify-end gap-6 pt-6 ">
+              <button type="button" onClick={() => { setShowForm(false); setEditingPost(null); }} className="px-10 py-5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all w-full sm:w-auto">
+                {language === 'es' ? 'Abortar' : 'Abort'}
               </button>
-              <button type="submit" disabled={isSubmitting} className="flex items-center justify-center gap-3 px-10 py-4 bg-purple-600 text-white rounded-2xl font-black text-lg hover:bg-purple-700 transition-all shadow-xl hover-spring disabled:opacity-70 w-full sm:w-auto uppercase tracking-wide">
-                {isSubmitting ? (language === 'es' ? 'Publicando...' : 'Posting...') : (editingPost ? (language === 'es' ? 'Guardar' : 'Save') : (language === 'es' ? 'Publicar en el Foro' : 'Post to Forum'))}
+              <button type="submit" disabled={isSubmitting} className="aura-gradient-primary text-white px-12 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all w-full sm:w-auto">
+                {isSubmitting ? (language === 'es' ? 'Transmitiendo...' : 'Broadcasting...') : (editingPost ? (language === 'es' ? 'Sincronizar' : 'Sync') : (language === 'es' ? 'Iniciar Transmisión' : 'Start Broadcast'))}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-8">
         {filteredPosts.length === 0 ? (
-          <div className="text-center py-32 bg-gray-50/50 dark:bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-slate-700">
-             <MessageSquare size={64} className="mx-auto text-gray-300 dark:text-slate-600 mb-6" />
-             <p className="text-xl font-bold text-gray-500 dark:text-slate-400">{language === 'es' ? 'No hay publicaciones que coincidan.' : 'No posts match your search.'}</p>
+          <div className="aura-card py-40 text-center shadow-none border-2 border-dashed border-slate-200 dark:border-slate-800">
+             <div className="w-24 h-24 bg-slate-100 dark:bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+               <MessageSquare size={40} className="text-slate-300 dark:text-slate-700" />
+             </div>
+             <p className="text-xl font-black text-slate-400 uppercase tracking-widest">{language === 'es' ? 'Sin señales de nexo' : 'No nexus signals'}</p>
           </div>
         ) : (
           filteredPosts.map(post => {
@@ -285,68 +289,75 @@ export default function ForumView({ profile, users, forum, showToast, comments =
             const isExpanded = expandedPosts[post.id];
             const catInfo = CATEGORIES[post.category] || CATEGORIES.académico;
             return (
-              <div key={post.id} className={`glass-card p-6 md:p-8 rounded-[2.5rem] shadow-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden group ${isUnread ? 'border-purple-200 dark:border-purple-800/60' : 'border-gray-100 dark:border-slate-700/50'}`}>
-                <div className={`absolute top-0 left-0 w-1.5 h-full transition-all group-hover:w-2.5 ${isUnread ? 'bg-gradient-to-b from-purple-500 to-indigo-600' : 'bg-gray-200 dark:bg-slate-700'}`}></div>
-                
-                <div className="pl-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-3 mb-3">
-                        <span className={`px-3 py-1.5 text-xs font-black uppercase rounded-xl flex items-center gap-2 border shadow-sm ${catInfo.color}`}>
-                          <Tag size={12} /> {language === 'es' ? catInfo.es : catInfo.en}
+              <div key={post.id} className={`aura-card p-0 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 group ${isUnread ? 'ring-2 ring-indigo-500' : ''}`}>
+                <div className="p-8 md:p-10">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-8">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <span className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 border-2 ${catInfo.color}`}>
+                          {catInfo.icon} {language === 'es' ? catInfo.es : catInfo.en}
                         </span>
-                        <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3 flex-wrap">
-                           {post.title}
-                           {isUnread && <span className="bg-red-500 text-white text-xs px-3 py-1 rounded-full animate-pulse font-black uppercase tracking-widest">{language === 'es' ? 'NUEVO' : 'NEW'}</span>}
-                        </h3>
+                        {isUnread && <span className="aura-gradient-primary text-white text-[9px] px-4 py-1.5 rounded-full animate-pulse font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-500/30">{language === 'es' ? 'Prioritario' : 'Priority'}</span>}
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-gray-500 dark:text-slate-400">
-                        <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm"><User size={13} /> {post.author_name}</span>
-                        <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm"><Calendar size={13} /> {new Date(post.created_at).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'medium' })}</span>
+                      
+                      <h3 className="text-3xl font-black text-slate-900 dark:text-white leading-tight tracking-tighter group-hover:text-indigo-600 transition-colors">
+                         {post.title}
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                        <span className="flex items-center gap-2 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors"><User size={16} className="text-indigo-500" /> {post.author_name}</span>
+                        <span className="flex items-center gap-2"><Calendar size={16} className="text-slate-400" /> {new Date(post.created_at).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                         {new Date(post.updated_at) > new Date(post.created_at) && (
-                           <span className="italic text-purple-500 font-medium">{language === 'es' ? `Modificado: ${new Date(post.updated_at).toLocaleDateString()}` : `Modified: ${new Date(post.updated_at).toLocaleDateString()}`}</span>
+                           <span className="text-indigo-400 font-black">{language === 'es' ? '[Dato Actualizado]' : '[Data Updated]'}</span>
                         )}
                       </div>
                     </div>
+
                     {(profile.id === post.author_id || profile.role === 'profesor') && (
-                      <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                      <div className="flex gap-3 shrink-0">
                         {profile.id === post.author_id && (
-                          <button onClick={() => startEditing(post)} className="p-3 text-gray-500 hover:text-purple-600 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:border-purple-200 transition-all focus-visible:ring-inset" aria-label="Edit"><Edit2 size={18}/></button>
+                          <button onClick={(e) => { e.stopPropagation(); startEditing(post); }} className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-indigo-100 transition-all"><Edit2 size={20}/></button>
                         )}
-                        <button onClick={() => handleDeletePost(post.id)} className="p-3 text-gray-500 hover:text-red-500 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:border-red-200 transition-all focus-visible:ring-inset" aria-label="Delete"><Trash2 size={18}/></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }} className="p-4 bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl shadow-sm border-2 border-transparent hover:border-rose-100 transition-all"><Trash2 size={20}/></button>
                       </div>
                     )}
                   </div>
 
-                  <div className={`relative overflow-hidden transition-all duration-500 ${isExpanded ? '' : 'max-h-36'}`}>
-                    <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 text-base leading-relaxed ql-editor !p-0 !h-auto overflow-visible" dangerouslySetInnerHTML={{ __html: post.content }} />
+                  <div className={`relative overflow-hidden transition-all duration-700 ease-in-out ${isExpanded ? 'max-h-[2000px]' : 'max-h-[160px]'}`}>
+                    <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 text-lg leading-relaxed ql-editor !p-0" dangerouslySetInnerHTML={{ __html: post.content }} />
                     {!isExpanded && (
-                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white dark:from-slate-800 to-transparent pointer-events-none"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-slate-800 via-white/80 dark:via-slate-800/80 to-transparent pointer-events-none"></div>
                     )}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-gray-100 dark:border-slate-700/50 pt-5 mt-5">
-                    <div className="flex items-center gap-3 flex-wrap">
-                       <button onClick={() => handleLike(post, true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${(Array.isArray(post.likes) ? post.likes : []).includes(profile.id) ? 'bg-purple-600 text-white border-purple-700 shadow-purple-500/20' : 'text-gray-500 hover:text-purple-600 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-purple-300'}`}>
-                         <ThumbsUp size={16} /> {Array.isArray(post.likes) ? post.likes.length : 0}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-6 border-t-2 border-slate-50 dark:border-slate-800 pt-8 mt-8">
+                    <div className="flex items-center gap-4">
+                       <button onClick={() => handleLike(post, true)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border-2 active:scale-90 ${(Array.isArray(post.likes) ? post.likes : []).includes(profile.id) ? 'aura-gradient-primary text-white border-transparent' : 'text-slate-400 hover:text-indigo-600 bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-indigo-100'}`}>
+                         <ThumbsUp size={18} /> {Array.isArray(post.likes) ? post.likes.length : 0}
                        </button>
-                       <button onClick={() => handleLike(post, false)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-sm border hover-spring focus-visible:ring-inset ${(Array.isArray(post.dislikes) ? post.dislikes : []).includes(profile.id) ? 'bg-red-500 text-white border-red-600 shadow-red-500/20' : 'text-gray-500 hover:text-red-500 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-red-300'}`}>
-                         <ThumbsDown size={16} /> {Array.isArray(post.dislikes) ? post.dislikes.length : 0}
+                       <button onClick={() => handleLike(post, false)} className={`flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border-2 active:scale-90 ${(Array.isArray(post.dislikes) ? post.dislikes : []).includes(profile.id) ? 'bg-rose-600 text-white border-transparent' : 'text-slate-400 hover:text-rose-600 bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-rose-100'}`}>
+                         <ThumbsDown size={18} /> {Array.isArray(post.dislikes) ? post.dislikes.length : 0}
                        </button>
                     </div>
-                    <div className="flex items-center gap-3 flex-wrap">
+                    
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
                       {isUnread && (
-                        <button onClick={() => handleRead(post.id)} className="flex items-center gap-2 px-4 py-2.5 text-sm font-black text-gray-500 hover:text-purple-600 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl hover:border-purple-300 transition-all focus-visible:ring-inset shadow-sm">
-                          <CheckCircle size={16} className="shrink-0" /> {language === 'es' ? 'Marcar leído' : 'Mark read'}
+                        <button onClick={() => handleRead(post.id)} className="flex-1 sm:flex-none flex items-center justify-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl hover:border-indigo-100 transition-all shadow-sm">
+                           {language === 'es' ? 'Confirmar Lectura' : 'Confirm Read'}
                         </button>
                       )}
-                      <button onClick={() => { toggleExpand(post.id); if (isUnread) handleRead(post.id); }} className="flex items-center gap-2 px-5 py-2.5 text-sm font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-900/40 rounded-xl hover:bg-purple-100 transition-all focus-visible:ring-inset hover-spring shadow-sm">
-                        {isExpanded ? <><ChevronUp size={16}/> {language === 'es' ? 'Mostrar menos' : 'Show less'}</> : <><ChevronDown size={16}/> {language === 'es' ? 'Leer completo' : 'Read more'}</>}
+                      <button onClick={() => { toggleExpand(post.id); if (isUnread) handleRead(post.id); }} className="flex-1 sm:flex-none flex items-center justify-center gap-4 px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] aura-gradient-primary text-white rounded-2xl shadow-xl shadow-indigo-500/20 active:scale-95 transition-all">
+                        {isExpanded ? <><ChevronUp size={20}/> {language === 'es' ? 'Colapsar' : 'Collapse'}</> : <><ChevronDown size={20}/> {language === 'es' ? 'Descifrar' : 'Decrypt'}</>}
                       </button>
                     </div>
                   </div>
-                  <CommentsSection parentId={post.id} parentType="forum" profile={profile} comments={comments} showToast={showToast} />
                 </div>
+                
+                {isExpanded && (
+                  <div className="bg-slate-50/50 dark:bg-slate-900/30 p-8 md:p-10 border-t-2 border-slate-100 dark:border-slate-800 animate-fade-in">
+                    <CommentsSection parentId={post.id} parentType="forum" profile={profile} comments={comments} showToast={showToast} />
+                  </div>
+                )}
               </div>
             );
           })

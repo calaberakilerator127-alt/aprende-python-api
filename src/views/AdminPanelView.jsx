@@ -100,7 +100,6 @@ export default function AdminPanelView({
           value: optimisticSettings
       });
       
-      if (error) throw error;
       await logAdminAction(devProfile, 'toggle_maintenance', 'global_settings', { mode: !newVal }, { mode: newVal });
       showToast(newVal ? 'Modo mantenimiento activado' : 'Modo mantenimiento desactivado');
     } catch (e) { 
@@ -158,7 +157,6 @@ export default function AdminPanelView({
           value: { emails: newList } 
       });
       
-      if (error) throw error;
       setSecurityLists(prev => ({ ...prev, [type]: newList }));
       await logAdminAction(devProfile, `update_${type}`, 'global_security', { emails: currentList }, { emails: newList });
       showToast(`${type} actualizada`);

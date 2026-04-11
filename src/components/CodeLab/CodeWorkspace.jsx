@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Copy, RotateCcw, Terminal, Code2, Sparkles, Loader2, AlertCircle, Cpu, Zap, Share2, Info, XCircle, Save, FolderOpen, Download, Upload, Trash2, Edit2 } from 'lucide-react';
+import { Play, Copy, RotateCcw, Terminal, Code2, Sparkles, Loader2, AlertCircle, Cpu, Zap, Share2, Info, XCircle, Save, FolderOpen, Download, Upload, Trash2, Edit2, ChevronRight, TerminalSquare } from 'lucide-react';
 import { useSettings } from '../../hooks/SettingsContext';
 import api from '../../config/api';
 import ShareModal from './ShareModal';
 
-// --- Syntax Highlighting Engine ---
+// --- Syntax Highlighting Engine (Aura Theme) ---
 const highlightPython = (code) => {
   if (!code) return '';
   
@@ -101,12 +101,19 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
   const highlightRef = useRef(null);
   const pyodideRef = useRef(null);
   const fileInputRef = useRef(null);
+  const terminalBottomRef = useRef(null);
 
   const lineCount = code.split('\n').length;
 
   useEffect(() => {
     setErrors(checkPythonErrors(code));
   }, [code]);
+
+  useEffect(() => {
+    if (terminalBottomRef.current) {
+      terminalBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [output]);
 
   const handleRunCode = async () => {
     setIsRunning(true);
@@ -121,7 +128,7 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
              script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
              script.onload = resolve;
              script.onerror = () => {
-                setErrorHeader("Error de red cargando analizador motor.");
+                setErrorHeader("Error de red cargando motor.");
                 reject(new Error("Failed to load script"));
              };
              document.body.appendChild(script);
@@ -143,14 +150,14 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
       }
     }
     
-    setOutput(prev => prev + '\n>>> Run starting...\n');
+    setOutput(prev => prev + '\n>>> [STARTING MISSION] ' + codeName + '...\n');
     try {
       await py.runPythonAsync(code);
-      setOutput(prev => prev + '\n>>> Exited cleanly.');
+      setOutput(prev => prev + '\n>>> [MISSION SUCCESS] Exited cleanly.');
     } catch (err) {
       const match = /File "<exec>", line (\d+)/.exec(err.message);
       const lineText = match ? `(Line ${match[1]}) ` : '';
-      setOutput(prev => prev + `\n❌ ERROR ${lineText}:\n` + err.message);
+      setOutput(prev => prev + `\n❌ [MISSION FAILURE] ERROR ${lineText}:\n` + err.message);
     } finally {
       setIsRunning(false);
     }
@@ -224,7 +231,7 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
 
       if (currentCodeId) {
         await api.put(`/data/saved_codes/${currentCodeId}`, codeData);
-        showToast('Código actualizado guardado');
+        showToast('Código actualizado');
       } else {
         const { data } = await api.post('/data/saved_codes', {
            ...codeData,
@@ -234,7 +241,7 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
         });
         
         setCurrentCodeId(data.id);
-        showToast('Nuevo código guardado correctamente');
+        showToast('Nuevo código guardado');
       }
     } catch(e) {
       console.error(e);
@@ -252,7 +259,7 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
           setCodeName('main.py');
           setCode('');
       }
-      showToast("Código eliminado", "success");
+      showToast("Código eliminado");
     } catch(e) { 
       console.error(e);
       showToast("Error al eliminar", "error");
@@ -272,7 +279,6 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
       showToast(`Cargado: ${targetItem.title}`);
   };
 
-  // --- UPLOAD / DOWNLOAD ---
   const handleDownloadCode = () => {
       const element = document.createElement("a");
       const file = new Blob([code], {type: 'text/plain'});
@@ -298,12 +304,12 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
       <style>{`
-        .editor-container { position: relative; font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0f172a; }
-        .editor-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 24px; margin: 0; font-size: 14px; line-height: 24px; white-space: pre; overflow: auto; box-sizing: border-box; border: none; outline: none; }
-        .editor-textarea { color: transparent; caret-color: white; background: transparent; z-index: 10; resize: none; }
-        .editor-highlight { z-index: 1; color: #94a3b8; pointer-events: none; }
+        .editor-container { position: relative; font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0b0f1a; }
+        .editor-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 40px; margin: 0; font-size: 15px; line-height: 26px; white-space: pre; overflow: auto; box-sizing: border-box; border: none; outline: none; }
+        .editor-textarea { color: transparent; caret-color: #6366f1; background: transparent; z-index: 10; resize: none; }
+        .editor-highlight { z-index: 1; color: #475569; pointer-events: none; }
         .token-keyword { color: #c678dd; font-weight: bold; }
         .token-string { color: #98c379; }
         .token-builtin { color: #61afef; }
@@ -314,47 +320,55 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
       `}</style>
 
       {/* COLUMNA IZQUIERDA: Lógica y Editor */}
-      <div className="lg:col-span-3 space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm gap-4">
-             <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto custom-scrollbar pb-1 md:pb-0">
-                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl font-bold cursor-pointer hover:bg-indigo-100 transition whitespace-nowrap" onClick={() => {
-                     const name = prompt("Renombrar archivo a:", codeName);
+      <div className="lg:col-span-3 space-y-8 min-w-0">
+          <div className="aura-card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+             <div className="flex items-center gap-4 w-full md:w-auto">
+                <div className="p-4 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-inner cursor-pointer hover:scale-105 transition-all" onClick={() => {
+                     const name = prompt("Renombrar misión a:", codeName);
                      if (name) setCodeName(name);
                 }}>
-                   <Code2 size={18} /> {codeName}
+                   <Code2 size={24} />
                 </div>
-                {currentCodeId && <div className="text-[10px] text-gray-400 uppercase font-black bg-gray-50 dark:bg-slate-900 px-2 py-1 rounded-md">Guardado en Nube</div>}
+                <div>
+                   <h2 className="font-black text-xs uppercase tracking-[0.2em] text-slate-400">{language === 'es' ? 'Archivo Activo' : 'Active File'}</h2>
+                   <p className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-tighter">{codeName}</p>
+                </div>
+                {currentCodeId && <div className="ml-4 px-4 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400">Sync Active</div>}
              </div>
              
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-4">
                  <input type="file" accept=".py,.txt" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                 <button onClick={() => fileInputRef.current.click()} className="p-2.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl" data-tooltip="Cargar script local"><Upload size={18} /></button>
-                 <button onClick={handleDownloadCode} className="p-2.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl" data-tooltip="Descargar archivo"><Download size={18} /></button>
-                 <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 mx-2"></div>
-                 <button onClick={handleSaveCode} className="flex items-center gap-2 bg-[#27c93f] hover:bg-[#20a834] text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-lg shadow-green-500/20">
-                    <Save size={18} /> {language === 'es' ? 'Guardar' : 'Save'}
+                 <div className="flex bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl shadow-inner border border-slate-100 dark:border-slate-800">
+                    <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-indigo-600 transition-all outline-none" data-tooltip="Ingresar Datos (Upload)"><Upload size={20} /></button>
+                    <button onClick={handleDownloadCode} className="p-3 text-slate-400 hover:text-indigo-600 transition-all outline-none" data-tooltip="Extraer Datos (Download)"><Download size={20} /></button>
+                    <button onClick={() => navigator.clipboard.writeText(code)} className="p-3 text-slate-400 hover:text-indigo-600 transition-all outline-none" data-tooltip="Duplicar (Copy)"><Copy size={20} /></button>
+                 </div>
+                 <button onClick={handleSaveCode} className="flex items-center gap-3 aura-gradient-primary text-white px-8 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all outline-none">
+                    <Save size={20} /> {language === 'es' ? 'Indexar' : 'Index'}
                  </button>
              </div>
           </div>
 
-          <div className="glass-card rounded-[2.5rem] shadow-2xl border border-gray-200 dark:border-slate-700/50 overflow-hidden relative">
-            <div className="bg-slate-50 dark:bg-slate-900 px-6 py-3 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center">
-              <div className="flex gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+          <div className="aura-card p-0 rounded-[3rem] shadow-3xl overflow-hidden relative border-none bg-[#0b0f1a]">
+            <div className="bg-[#1a1f2e] px-8 py-4 border-b border-white/5 flex justify-between items-center">
+              <div className="flex gap-3">
+                <div className="w-3.5 h-3.5 rounded-full bg-rose-500 animate-pulse"></div>
+                <div className="w-3.5 h-3.5 rounded-full bg-amber-500"></div>
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-500"></div>
               </div>
-              <div className="flex items-center gap-4">
-                 <button onClick={() => { setCode(''); setCurrentCodeId(null); setCodeName('main.py'); setOutput(''); }} className="p-2 text-gray-400 hover:text-indigo-500 transition-all"><Trash2 size={16} /></button>
-                 <button onClick={() => navigator.clipboard.writeText(code)} className="p-2 text-gray-400 hover:text-indigo-500 transition-all"><Copy size={16} /></button>
-                 <button onClick={handleRunCode} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-colors"><Zap size={14} /> Ejecutar</button>
+              <div className="flex items-center gap-6">
+                 <button onClick={() => { setCode(''); setCurrentCodeId(null); setCodeName('main.py'); setOutput(''); }} className="p-2 text-white/20 hover:text-rose-500 transition-all outline-none"><Trash2 size={20} /></button>
+                 <button onClick={handleRunCode} disabled={isRunning} className="flex items-center gap-3 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-500/20 active:scale-95 disabled:opacity-50 outline-none">
+                   {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />} 
+                   {language === 'es' ? 'Ejecutar' : 'Deploy'}
+                 </button>
               </div>
             </div>
             
-            <div className="flex editor-container h-[450px] overflow-hidden">
-               <div className="bg-slate-900 text-gray-500 text-right py-6 font-mono text-sm select-none border-r border-slate-800 min-w-[3.5rem] px-3 z-20">
+            <div className="flex editor-container h-[500px] overflow-hidden">
+               <div className="bg-[#0b0f1a] text-slate-700 text-right py-10 font-mono text-sm select-none border-r border-white/5 min-w-[4rem] px-5 z-20">
                  {Array.from({ length: Math.max(lineCount, 1) }).map((_, i) => (
-                     <div key={i} className={`h-6 leading-6 ${errors.some(e => e.line === i + 1) ? 'text-red-500 font-bold bg-red-500/10 rounded-sm' : ''}`}>{i + 1}</div>
+                     <div key={i} className={`h-[26px] leading-[26px] transition-colors ${errors.some(e => e.line === i + 1) ? 'text-rose-500 font-black bg-rose-500/10 rounded-lg px-2 shadow-sm' : ''}`}>{i + 1}</div>
                  ))}
                </div>
                <div className="relative flex-1 overflow-hidden">
@@ -365,57 +379,84 @@ export default function CodeWorkspace({ profile, showToast, savedCodes, fetchFul
           </div>
 
           {errors.length > 0 && (
-             <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3 text-red-500"><XCircle size={18} /><h4 className="text-xs font-black uppercase tracking-widest">Errores Detectados</h4></div>
-                <div className="space-y-2">
+             <div className="aura-card p-6 border-none bg-rose-500/10 shadow-none ring-2 ring-rose-500/20">
+                <div className="flex items-center gap-4 mb-4 text-rose-500">
+                  <AlertCircle size={24} />
+                  <h4 className="font-black text-xs uppercase tracking-[0.3em]">{language === 'es' ? 'Inconsistencias Detectadas' : 'Inconsistencies Detected'}</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {errors.map((err, i) => (
-                    <div key={i} className="flex items-start gap-4 p-3 bg-red-500/10 rounded-xl border border-red-500/10"><span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full mt-0.5">L {err.line}</span><div><p className="text-sm font-bold text-red-800 dark:text-red-300 leading-tight">{err.message}</p></div></div>
+                    <div key={i} className="flex items-start gap-4 p-4 bg-white/5 dark:bg-rose-950/20 rounded-2xl border border-rose-500/20 backdrop-blur-md">
+                      <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full mt-0.5 shadow-lg shadow-rose-500/20">L{err.line}</span>
+                      <p className="text-sm font-bold text-rose-800 dark:text-rose-200 leading-tight">{err.message}</p>
+                    </div>
                   ))}
                 </div>
              </div>
           )}
 
-          <div className="bg-[#0b0f1a] rounded-[2.5rem] p-6 border-4 border-slate-800 shadow-2xl min-h-[220px] relative">
-            <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
-              <div className="flex items-center gap-3"><Terminal size={18} className="text-green-500" /><h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Terminal Output</h3></div>
-              <button onClick={() => setOutput('')} className="text-[10px] bg-slate-800 px-3 py-1 rounded-md text-gray-400 hover:text-white uppercase tracking-widest">Limpiar</button>
+          <div className="bg-[#0b0f1a] rounded-[3rem] p-8 border-4 border-slate-900 shadow-3xl min-h-[250px] relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity">
+              <TerminalSquare size={120} className="text-emerald-500" />
             </div>
-            <pre className="font-mono text-sm text-green-400 whitespace-pre-wrap leading-relaxed custom-scrollbar max-h-[300px] overflow-y-auto w-full break-all">
-              {output || (isRunning ? 'Iniciando entorno base...\n' : 'Presiona Ejecutar para visualizar salidas...\n')}
-              {isRunning && <span className="animate-pulse bg-green-400 w-2.5 h-4 inline-block ml-1"></span>}
+            <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-5">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                  <Terminal size={24} />
+                </div>
+                <div>
+                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">{language === 'es' ? 'Terminal de Salida' : 'Output Terminal'}</h3>
+                   <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mt-1">Status: Operational</p>
+                </div>
+              </div>
+              <button onClick={() => setOutput('')} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all outline-none">Flush Console</button>
+            </div>
+            <pre className="font-mono text-sm text-emerald-400 whitespace-pre-wrap leading-loose custom-scrollbar max-h-[400px] overflow-y-auto w-full break-all selection:bg-emerald-500/30">
+              {output || (isRunning ? 'Initializing operational environment...\n' : 'Waiting for deployment instructions...\n')}
+              {isRunning && <span className="animate-pulse bg-emerald-400 w-3 h-5 inline-block ml-2 align-middle"></span>}
+              <div ref={terminalBottomRef} />
             </pre>
           </div>
       </div>
 
       {/* COLUMNA DERECHA: Sidebar de Códigos Guardados */}
-      <div className="space-y-6">
-         <div className="glass-card p-6 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-sm sticky top-24">
-            <h3 className="font-black text-lg flex items-center gap-3 mb-6 text-gray-900 dark:text-white"><FolderOpen className="text-indigo-600" size={24} /> Códigos Guardados</h3>
+      <div className="space-y-8">
+         <div className="aura-card p-8 rounded-[3rem] sticky top-24">
+            <h3 className="font-black text-xl flex items-center gap-4 mb-8 text-slate-900 dark:text-white tracking-tighter uppercase">
+              <FolderOpen className="text-indigo-600" size={28} /> 
+              {language === 'es' ? 'Repositorio' : 'Repository'}
+            </h3>
             
             {savedCodes.length === 0 ? (
-               <div className="text-center p-6 bg-gray-50 dark:bg-slate-900 rounded-3xl border border-dashed border-gray-200 dark:border-slate-700">
-                  <p className="text-sm text-gray-400 font-medium">Aún no tienes scripts guardados en la nube.</p>
+               <div className="text-center p-10 bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                  <p className="text-xs text-slate-400 font-black uppercase tracking-widest leading-relaxed">No se han detectado registros en la nube.</p>
                </div>
             ) : (
-               <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+               <div className="space-y-4 max-h-[650px] overflow-y-auto custom-scrollbar pr-3">
                  {savedCodes.map(item => (
-                    <div key={item.id} className={`group relative flex flex-col p-4 rounded-2xl border transition-all cursor-pointer ${currentCodeId === item.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/10' : 'border-gray-100 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 bg-white dark:bg-slate-800/50'}`} onClick={() => handleLoadSavedCode(item)}>
-                       <div className="flex justify-between items-start mb-2">
-                           <span className="font-bold text-sm text-gray-800 dark:text-gray-200 truncate pr-6">{item.title}</span>
+                    <div key={item.id} className={`group relative flex flex-col p-6 rounded-[2rem] border-2 transition-all duration-300 cursor-pointer ${currentCodeId === item.id ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-600/10 shadow-xl shadow-indigo-500/10 scale-[1.02]' : 'border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/50 bg-white dark:bg-slate-800/50 hover:shadow-lg'}`} onClick={() => handleLoadSavedCode(item)}>
+                       <div className="flex justify-between items-start mb-3">
+                           <span className="font-black text-sm text-slate-800 dark:text-slate-100 uppercase tracking-tight truncate pr-8">{item.title}</span>
+                           <ChevronRight size={16} className={`transition-transform duration-300 ${currentCodeId === item.id ? 'translate-x-1 text-indigo-600' : 'text-slate-300 group-hover:translate-x-1'}`} />
                        </div>
-                       <span className="text-[10px] text-gray-400 uppercase tracking-widest">{new Date(item.updated_at).toLocaleDateString()}</span>
-                       
-                       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-lg border border-gray-100 dark:border-slate-700">
-                           <button className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10" onClick={(e) => { e.stopPropagation(); handleDeleteCode(item.id); }}><Trash2 size={14}/></button>
-                           <button className="text-blue-500 hover:text-blue-700 p-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-500/10" onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setShareItem(item);
-                           }}><Share2 size={14}/></button>
+                       <div className="flex items-center justify-between">
+                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{new Date(item.updated_at).toLocaleDateString()}</span>
+                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all" onClick={(e) => { e.stopPropagation(); handleDeleteCode(item.id); }}><Trash2 size={16}/></button>
+                            <button className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all" onClick={(e) => { 
+                               e.stopPropagation(); 
+                               setShareItem(item);
+                            }}><Share2 size={16}/></button>
+                         </div>
                        </div>
                     </div>
                  ))}
                </div>
             )}
+            
+            <button onClick={() => { setCode(''); setCurrentCodeId(null); setCodeName('new_module.py'); }} className="w-full mt-8 py-4 border-2 border-dashed border-indigo-200 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all flex items-center justify-center gap-3 active:scale-95 outline-none">
+               <RotateCcw size={16} /> {language === 'es' ? 'Nuevo Proyecto' : 'New Project'}
+            </button>
          </div>
       </div>
       

@@ -1,3 +1,5 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { ClipboardCheck, AlertTriangle, ArrowLeft, ArrowRight, List, Shield, Save, Send, Clock } from 'lucide-react';
 import api from '../config/api';
 
 /**
@@ -84,8 +86,6 @@ export default function QuizPlayer({ quiz, profile, onFinish, showToast }) {
             type: 'quiz'
          });
 
-         if (error) throw error;
-
          showToast(isAuto ? 'Tiempo agotado. Examen enviado automáticamente.' : 'Evaluación enviada con éxito.');
          onFinish();
       } catch (e) {
@@ -101,38 +101,39 @@ export default function QuizPlayer({ quiz, profile, onFinish, showToast }) {
       const missingCount = totalCount - answeredCount;
 
       return (
-         <div className="fixed inset-0 bg-gray-50 dark:bg-slate-900 z-[210] flex flex-col items-center justify-center p-6 animate-scale-in">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl text-center border-4 border-indigo-500/20">
-               <div className="w-24 h-24 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-indigo-500/30">
+         <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[210] flex flex-col items-center justify-center p-6 animate-scale-in">
+            <div className="aura-card w-full max-w-2xl p-10 shadow-3xl text-center border-none bg-white dark:bg-slate-900 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 aura-gradient-primary opacity-5 rounded-full -mr-16 -mt-16"></div>
+               <div className="w-24 h-24 aura-gradient-primary text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl">
                   <ClipboardCheck size={48} />
                </div>
-               <h2 className="text-4xl font-black mb-4 text-gray-900 dark:text-white">Resumen Final</h2>
-               <p className="text-gray-500 dark:text-gray-500 mb-10 text-lg">Has completado tu revisión. Asegúrate de que todas tus respuestas sean las correctas antes de realizar el envío definitivo.</p>
+               <h2 className="text-4xl font-black mb-4 text-slate-900 dark:text-white uppercase tracking-tighter italic">Resumen Final</h2>
+               <p className="text-slate-500 dark:text-slate-400 mb-10 text-sm font-black uppercase tracking-[0.2em]">Verifica tus respuestas antes del envío definitivo.</p>
 
                <div className="grid grid-cols-2 gap-6 mb-10">
-                  <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-900/50">
-                     <p className="text-3xl font-black text-indigo-600">{answeredCount}</p>
-                     <p className="text-xs font-bold uppercase tracking-widest text-indigo-400">Respondidas</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 shadow-inner">
+                     <p className="text-4xl font-black text-indigo-600 italic leading-none mb-2">{answeredCount}</p>
+                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Respondidas</p>
                   </div>
-                  <div className={`p-6 rounded-3xl border ${missingCount > 0 ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 text-amber-600' : 'bg-green-50 dark:bg-green-900/20 border-green-200 text-green-600'}`}>
-                     <p className="text-3xl font-black">{missingCount}</p>
-                     <p className="text-xs font-bold uppercase tracking-widest opacity-70">Pendientes</p>
+                  <div className={`p-8 rounded-[2.5rem] border-2 shadow-inner transition-all ${missingCount > 0 ? 'bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/30' : 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30'}`}>
+                     <p className={`text-4xl font-black italic leading-none mb-2 ${missingCount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>{missingCount}</p>
+                     <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Pendientes</p>
                   </div>
                </div>
 
                {missingCount > 0 && (
-                  <div className="flex items-center gap-3 bg-amber-100 text-amber-700 px-6 py-4 rounded-2xl mb-8 border border-amber-200 text-sm font-bold">
+                  <div className="flex items-center gap-4 bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-8 py-5 rounded-3xl mb-10 border-2 border-amber-100 dark:border-amber-900/50 text-[10px] font-black uppercase tracking-widest">
                      <AlertTriangle size={20} />
-                     <span>Atención: Tienes {missingCount} pregunta(s) sin responder.</span>
+                     <span>Atención: Tienes {missingCount} pregunta(s) abiertas.</span>
                   </div>
                )}
 
-               <div className="flex flex-col sm:flex-row gap-4">
-                  <button onClick={() => setShowSummary(false)} className="flex-1 py-4 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 font-bold rounded-2xl hover:bg-gray-200 transition text-lg flex items-center justify-center gap-2">
-                     <ArrowLeft size={20} /> Volver al Examen
+               <div className="flex flex-col sm:flex-row gap-6">
+                  <button onClick={() => setShowSummary(false)} className="group flex-1 py-6 bg-slate-50 dark:bg-slate-800 text-slate-500 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-3 active:scale-95 border-2 border-slate-100 dark:border-slate-800">
+                     <ArrowLeft size={16} /> Volver
                   </button>
-                  <button onClick={() => handleSubmitQuiz(false)} className="flex-1 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition text-lg flex items-center justify-center gap-2 transform hover:-translate-y-1">
-                     <Send size={20} /> Enviar Respuestas
+                  <button onClick={() => handleSubmitQuiz(false)} className="flex-1 py-6 aura-gradient-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+                     <Send size={16} /> Finalizar
                   </button>
                </div>
             </div>
@@ -141,69 +142,71 @@ export default function QuizPlayer({ quiz, profile, onFinish, showToast }) {
    }
 
    return (
-      <div className="fixed inset-0 bg-gray-50 dark:bg-slate-900 z-[200] flex flex-col animate-fade-in overflow-hidden">
+      <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950 z-[200] flex flex-col animate-fade-in overflow-hidden font-sans">
          {/* Header Info */}
-         <div className="bg-white dark:bg-slate-800 border-b dark:border-slate-700 p-4 md:p-6 shadow-sm z-10">
-            <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-black shadow-lg transform -rotate-6">
+         <div className="bg-white dark:bg-slate-900 border-b-4 border-slate-100 dark:border-slate-800 p-4 md:p-6 shadow-sm z-10">
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+               <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 aura-gradient-primary text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform cursor-default">
                      {currentQuestionIndex + 1}
                   </div>
                   <div>
-                     <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight truncate max-w-[200px] md:max-w-md">{quiz.title}</h2>
-                     <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Pregunta {currentQuestionIndex + 1} de {quiz.questions.length}</p>
+                     <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tighter italic italic">{quiz.title}</h2>
+                     <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-1">Nivel {currentQuestionIndex + 1} de {quiz.questions.length}</p>
                   </div>
                </div>
 
-               <div className="flex items-center gap-4 md:gap-8">
-                  <div className={`flex items-center gap-3 px-6 py-2 rounded-2xl border-2 font-black text-xl transition-all ${timeLeft !== null && timeLeft < 60 ? 'bg-red-50 text-red-500 border-red-200 animate-pulse' : 'bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 border-transparent'}`}>
-                     <Clock size={20} className={timeLeft !== null && timeLeft < 60 ? 'text-red-500' : 'text-indigo-500'} />
-                     {formatTime(timeLeft)}
+               <div className="flex items-center gap-6">
+                  <div className={`group flex items-center gap-4 px-8 py-4 rounded-3xl border-2 transition-all duration-500 shadow-inner ${timeLeft !== null && timeLeft < 60 ? 'bg-rose-50 text-rose-500 border-rose-200 animate-pulse' : 'bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-transparent'}`}>
+                     <Clock size={24} className={`transition-colors ${timeLeft !== null && timeLeft < 60 ? 'text-rose-500' : 'text-indigo-500'}`} />
+                     <span className="text-2xl font-black tabular-nums">{formatTime(timeLeft)}</span>
                   </div>
                   <button
                      onClick={() => setShowSummary(true)}
-                     className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-xl shadow-indigo-500/20"
+                     className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-10 py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] hover:scale-105 active:scale-95 transition-all shadow-3xl shadow-slate-500/20"
                   >Finalizar</button>
                </div>
             </div>
          </div>
 
-         <div className="flex-1 overflow-y-auto p-4 md:p-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-50/20 via-transparent to-transparent">
-            <div className="max-w-3xl mx-auto space-y-10">
+         <div className="flex-1 overflow-y-auto p-4 md:p-12 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-50/10 via-transparent to-transparent">
+            <div className="max-w-4xl mx-auto space-y-12">
                {/* Question Container */}
-               <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 md:p-14 shadow-2xl border-b-8 border-indigo-600 dark:border-indigo-500 relative transition-all">
-                  <div className="flex justify-between items-start mb-10">
-                     <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                           <span className="text-xs font-black text-indigo-500 uppercase tracking-widest px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 rounded">Enunciado</span>
-                           {currentQuestion.required && <span className="text-xs font-black text-red-500 uppercase tracking-widest px-2 py-0.5 bg-red-50 dark:bg-red-900/30 rounded">Obligatorio</span>}
+               <div className="aura-card bg-white dark:bg-slate-900 p-8 md:p-16 shadow-3xl border-none relative transition-all group overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 aura-gradient-primary opacity-[0.03] rounded-full -mr-32 -mt-32"></div>
+                  
+                  <div className="flex justify-between items-start mb-12 relative z-10">
+                     <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                           <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-full border border-indigo-100/50 dark:border-indigo-900/50">Enunciado</span>
+                           {currentQuestion.required && <span className="text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] px-3 py-1 bg-rose-50 dark:bg-rose-900/30 rounded-full border border-rose-100/50 dark:border-rose-900/50">Mandatorio</span>}
                         </div>
-                        <h3 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 leading-tight">{currentQuestion.text}</h3>
+                        <h3 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tighter">{currentQuestion.text}</h3>
                      </div>
-                     <div className="flex flex-col items-end gap-1">
-                        <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-2xl text-xs font-black shadow-sm">
-                           {currentQuestion.points} {currentQuestion.points === 1 ? 'Punto' : 'Puntos'}
+                     <div className="flex flex-col items-end">
+                        <span className="aura-gradient-primary text-white px-6 py-3 rounded-[1.5rem] text-xs font-black shadow-xl shadow-indigo-500/20 uppercase tracking-widest">
+                           +{currentQuestion.points}
                         </span>
                      </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-6 relative z-10">
                      {currentQuestion.type === 'multiple' ? (
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-6">
                            {currentQuestion.options.map((opt, i) => (
                               <button
                                  key={i}
                                  onClick={() => handleAnswer(i)}
-                                 className={`flex items-center gap-5 p-6 rounded-[1.5rem] border-2 text-left transition-all transform active:scale-[0.98] ${answers[currentQuestion.id] === i
-                                       ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 ring-8 ring-indigo-500/5'
-                                       : 'border-gray-50 dark:border-slate-700/50 hover:border-indigo-100 dark:hover:border-slate-600 bg-gray-50 dark:bg-slate-900/40'
+                                 className={`group/opt flex items-center gap-6 p-8 rounded-[2rem] border-2 text-left transition-all transform active:scale-[0.98] ${answers[currentQuestion.id] === i
+                                       ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-900/20 shadow-xl'
+                                       : 'border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:border-indigo-200 dark:hover:border-slate-700'
                                     }`}
                               >
-                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-colors ${answers[currentQuestion.id] === i ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-500 border border-gray-200 dark:border-slate-600'
+                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg transition-all duration-500 ${answers[currentQuestion.id] === i ? 'aura-gradient-primary text-white shadow-lg' : 'bg-white dark:bg-slate-800 text-slate-400 group-hover/opt:scale-110 shadow-inner'
                                     }`}>
                                     {String.fromCharCode(65 + i)}
                                  </div>
-                                 <span className={`text-base md:text-lg font-bold transition-colors ${answers[currentQuestion.id] === i ? 'text-indigo-900 dark:text-indigo-100' : 'text-gray-600 dark:text-gray-500'}`}>{opt}</span>
+                                 <span className={`text-xl font-black transition-colors ${answers[currentQuestion.id] === i ? 'text-slate-900 dark:text-white' : 'text-slate-500 group-hover/opt:text-slate-700 dark:group-hover/opt:text-slate-300'}`}>{opt}</span>
                               </button>
                            ))}
                         </div>
@@ -212,11 +215,11 @@ export default function QuizPlayer({ quiz, profile, onFinish, showToast }) {
                            <textarea
                               value={answers[currentQuestion.id] || ''}
                               onChange={e => handleAnswer(e.target.value)}
-                              className="w-full h-80 p-8 rounded-[2rem] border-2 border-gray-100 dark:border-slate-700 dark:bg-slate-900/50 outline-none focus:border-indigo-500 text-lg transition-all shadow-inner font-medium leading-relaxed"
-                              placeholder="Escribe tu respuesta detallada aquí..."
+                              className="w-full h-96 p-10 rounded-[2.5rem] border-2 border-slate-100 dark:border-slate-800 dark:bg-slate-950/50 outline-none focus:border-indigo-500 text-xl font-medium transition-all shadow-inner placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                              placeholder="Describe tu solución con precisión técnica..."
                            />
-                           <div className="absolute top-4 right-4 text-gray-400 dark:text-slate-700 group-focus-within:text-indigo-400 transition-colors">
-                              <Save size={24} />
+                           <div className="absolute top-6 right-6 text-slate-300 dark:text-slate-800 group-focus-within:text-indigo-400 transition-colors">
+                              <Save size={28} />
                            </div>
                         </div>
                      )}

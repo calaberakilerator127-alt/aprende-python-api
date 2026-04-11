@@ -11,53 +11,57 @@ require('dotenv').config({ path: '../.env.server' });
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: 'https://aprende-python-theta.vercel.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with']
-  }
-});
-
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
-// Middleware de CORS robusto
-const allowedOrigins = [
-  'https://aprende-python-theta.vercel.app',
-  'https://aprende-python.vercel.app',
-  'http://localhost:5173'
-];
+// Lista de orígenes permitidos (vía env var o defaults)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(o => o !== '')
+  .concat(['https://aprende-python-theta.vercel.app', 'https://aprende-python.vercel.app', 'http://localhost:5173']);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Permitir peticiones sin origen (como apps móviles o curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || origin.includes('.vercel.app')) {
-      return callback(null, true);
-    }
+// Función unificada para validar orígenes
+const corsOriginChecker = (origin, callback) => {
+  // Permitir peticiones sin origen (como apps móviles, curl o el propio server)
+  if (!origin) return callback(null, true);
+  
+  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+  const isVercel = origin.includes('.vercel.app');
+  const isInWhitelist = allowedOrigins.some(o => origin.startsWith(o));
+  
+  if (isLocal || isVercel || isInWhitelist) {
+    callback(null, true);
+  } else {
+    console.warn(`[CORS REJECTED] "${origin}" no está en la lista permitida.`);
     callback(new Error('No permitido por CORS'));
-  },
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  optionsSuccessStatus: 200
-}));
+  }
+};
 
+const corsOptions = {
+  origin: corsOriginChecker,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with', 'Accept'],
+  optionsSuccessStatus: 200
+};
+
+// Inicialización de Socket.io con las mismas opciones de CORS
+const io = new Server(server, { cors: corsOptions });
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Ruta de Salud (Para verificar si el servidor y la DB están vivos)
 app.get('/api/health', async (req, res) => {
   try {
-    await db.query('SELECT 1');
+    const dbStatus = await db.query('SELECT 1');
     res.json({ 
       status: 'ok', 
-      version: '1.0.4',
-      database: 'connected', 
-      timestamp: new Date(),
-      headers: req.headers // Útil para depurar origin
+      database: dbStatus ? 'connected' : 'error',
+      environment: process.env.NODE_ENV || 'development',
+      time: new Date().toISOString()
     });
   } catch (err) {
     res.status(500).json({ status: 'error', database: err.message });

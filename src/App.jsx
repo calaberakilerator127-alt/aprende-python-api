@@ -29,9 +29,13 @@ import MeetingOverlay from './components/MeetingOverlay';
 import FeedbackView from './views/FeedbackView';
 import ChangelogView from './views/ChangelogView';
 import AdminPanelView from './views/AdminPanelView';
+import MaintenanceView from './views/MaintenanceView';
 
 import api from './config/api';
 import socket from './config/socket';
+
+// INTERRUPTOR DE MANTENIMIENTO MANUAL (Cambiar a true para forzar mantenimiento global)
+const FORCE_MAINTENANCE_MODE = false;
 
 export default function App() {
   const { 
@@ -76,7 +80,8 @@ export default function App() {
   const [lastNotifId, setLastNotifId] = useState(() => localStorage.getItem('lastNotifId'));
   const [activeCall, setActiveCall] = useState(null);
   const [activeQuiz, setActiveQuiz] = useState(null);
-  const [globalSettings, setGlobalSettings] = useState({ maintenanceMode: false });
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [globalSettings, setGlobalSettings] = useState({ maintenanceMode: FORCE_MAINTENANCE_MODE });
   
   // Global Settings Listener
   useEffect(() => {
@@ -366,18 +371,10 @@ export default function App() {
     );
   }
 
-  // Maintenance Mode Screen
-  if (globalSettings.maintenanceMode && !isDeveloper) {
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900 p-8 text-center space-y-6">
-        <div className="p-8 bg-amber-100 dark:bg-amber-900/30 rounded-full text-amber-600 animate-bounce">
-          <Settings size={64} />
-        </div>
-        <h1 className="text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Mantenimiento</h1>
-        <p className="text-gray-500 dark:text-slate-400 max-w-md font-medium italic">Estamos ajustando los engranajes. Volvemos pronto.</p>
-        <button onClick={handleLogout} className="px-6 py-2 bg-indigo-600 text-white rounded-full text-xs font-black uppercase tracking-widest">Salir</button>
-      </div>
-    );
+  // Maintenance Mode Screen (Blocks Public Access)
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if ((FORCE_MAINTENANCE_MODE || globalSettings.maintenanceMode) && !isDeveloper && !isLocal) {
+    return <MaintenanceView handleLogout={handleLogout} />;
   }
 
   // stable sub-components to prevent focus loss on re-renders
@@ -466,15 +463,18 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-gray-100 font-sans overflow-hidden transition-colors duration-200">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-500">
         
-        {/* SIDEBAR */}
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-800 border-r dark:border-slate-700 transition-transform duration-300 flex flex-col shadow-2xl md:shadow-none`}>
+        {/* SIDEBAR AURA */}
+        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-72 aura-glass border-r border-slate-200 dark:border-slate-800/50 transition-all duration-300 flex flex-col shadow-2xl lg:shadow-none`}>
           <div className="p-8 flex items-center gap-4 group cursor-pointer" onClick={() => { setActiveTab('dashboard'); playSound('click'); }}>
-             <div className="p-2 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform">
+             <div className="p-3 aura-gradient-primary rounded-2xl shadow-xl shadow-indigo-500/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
                 <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
              </div>
-             <span className="font-black text-xl tracking-tight uppercase">Python Master</span>
+             <div>
+                <span className="font-black text-xl tracking-tighter uppercase font-display block leading-none">Python Master</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-indigo-500 opacity-60">Aura Intelligence</span>
+             </div>
           </div>
 
           <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar pb-8">
@@ -484,11 +484,11 @@ export default function App() {
               return (
                 <button
                   key={item.id} onClick={() => { setActiveTab(item.id); setSelectedResourceId(null); setSidebarOpen(false); playSound('click'); }}
-                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 relative group focus-visible:ring-inset ${isActive ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 font-bold' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700/60 hover:text-indigo-600'}`}
+                  className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 relative group focus-visible:ring-inset ${isActive ? 'aura-gradient-primary text-white next-gen-shadow font-bold' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-indigo-600'}`}
                 >
-                  <Icon size={22} className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
-                  <span className="flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis text-sm uppercase tracking-wider">{item.label}</span>
-                  {item.badge > 0 && <span className="bg-red-500 shadow-lg shadow-red-500/20 text-white text-[10px] h-5 w-5 rounded-full flex items-center justify-center font-black animate-bounce-in">{item.badge}</span>}
+                  <Icon size={20} className={`transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-white' : ''}`} />
+                  <span className="flex-1 text-left whitespace-nowrap overflow-hidden text-ellipsis text-[11px] font-black uppercase tracking-[0.15em]">{item.label}</span>
+                  {item.badge > 0 && <span className="absolute right-4 bg-rose-500 shadow-lg shadow-rose-500/30 text-white text-[9px] h-5 w-5 rounded-full flex items-center justify-center font-black animate-bounce-in">{item.badge}</span>}
                 </button>
               );
             })}
@@ -533,59 +533,45 @@ export default function App() {
           </div>
         </aside>
 
-        {/* OVERLAY MOBILE */}
-        {sidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 md:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />}
+         {/* OVERLAY MOBILE */}
+        {sidebarOpen && <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />}
 
-        {/* MAIN CONTENT */}
-        <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-          <header className="h-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-gray-100 dark:border-slate-700/50 flex items-center justify-between px-8 z-30 shrink-0 sticky top-0 shadow-sm">
-            <div className="flex items-center gap-6">
-              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-gray-500 p-2 -ml-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 transition"><Menu size={24} /></button>
+        {/* MAIN CONTENT AURA */}
+        <main className={`flex-1 flex flex-col h-full overflow-hidden relative transition-all duration-500`}>
+          <header className="h-24 bg-white/50 dark:bg-slate-950/50 backdrop-blur-2xl border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between px-10 z-30 shrink-0 sticky top-0">
+            <div className="flex items-center gap-8">
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-500 p-3 -ml-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><Menu size={24} /></button>
               {spectatingProfile && (
-                <div className="flex items-center gap-3 px-5 py-2 bg-red-600 text-white rounded-2xl animate-pulse shadow-xl shadow-red-500/30">
+                <div className="flex items-center gap-3 px-6 py-2.5 aura-gradient-primary text-white rounded-2xl animate-pulse shadow-xl shadow-indigo-500/30">
                    <Eye size={18} />
-                   <span className="text-[11px] font-black uppercase tracking-widest">Espectando: {spectatingProfile.name}</span>
-                   <button onClick={() => setSpectatingProfile(null)} className="ml-2 hover:scale-110 transition-transform"><X size={16}/></button>
+                   <span className="text-[10px] font-black uppercase tracking-widest">Watching: {spectatingProfile.name}</span>
+                   <button onClick={() => setSpectatingProfile(null)} className="ml-3 hover:scale-125 transition-transform"><X size={16}/></button>
                 </div>
               )}
-              <h2 className="text-2xl font-black tracking-tighter uppercase text-gray-900 dark:text-white hidden sm:block">
-                {menuItems.find(i => i.id === activeTab)?.label}
-              </h2>
+              <div className="hidden sm:flex flex-col">
+                <h2 className="text-2xl font-black tracking-tighter uppercase font-display text-slate-900 dark:text-white leading-none">
+                  {menuItems.find(i => i.id === activeTab)?.label}
+                </h2>
+                <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-1.5 opacity-80">Python Master / {activeTab}</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <button onClick={() => { setNotificationsOpen(!notificationsOpen); playSound('click'); }} className="p-3 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-2xl transition relative hover:scale-105 active:scale-95 shadow-md border border-indigo-100 dark:border-indigo-800/50">
-                  <Bell size={22} />
-                  {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 w-3 h-3 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full animate-pulse"></span>}
-                </button>
-                {notificationsOpen && (
-                  <div className="absolute right-0 mt-4 w-96 bg-white dark:bg-slate-800 rounded-[2rem] shadow-2xl border dark:border-slate-700 z-50 animate-fade-in overflow-hidden">
-                    <div className="p-6 border-b dark:border-slate-700 flex justify-between bg-gray-50/50 dark:bg-slate-900/20 items-center">
-                      <h3 className="font-black text-xs uppercase tracking-[0.2em] text-gray-400">Notificaciones</h3>
-                      <div className="flex items-center gap-3">
-                        {notifications.length > 0 && <button onClick={handleClearAllNotifications} className="text-[10px] text-red-500 font-black uppercase hover:bg-red-50 px-3 py-1.5 rounded-xl transition">Limpiar</button>}
-                        <button onClick={() => setNotificationsOpen(false)} className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Cerrar</button>
-                      </div>
-                    </div>
-                    <div className="max-h-[500px] overflow-y-auto custom-scrollbar">
-                      {notifications.length === 0 ? <p className="p-12 text-center text-gray-400 text-xs font-bold italic uppercase tracking-widest">Sin alertas</p> : [...notifications].sort((a,b)=>b.created_at-a.created_at).map(not => (
-                        <div key={not.id} onClick={() => handleNotificationClick(not)} className="group/notif relative border-b dark:border-slate-700 hover:bg-indigo-50/50 dark:hover:bg-slate-700/50 transition cursor-pointer p-6">
-                           <p className="text-sm font-bold text-gray-800 dark:text-white leading-snug">{not.message}</p>
-                           <p className="text-[10px] text-indigo-500 mt-2 uppercase font-black tracking-widest">{new Date(not.created_at).toLocaleString()}</p>
-                           <button onClick={(e) => { e.stopPropagation(); handleDeleteNotification(not.id); }} className="absolute top-6 right-4 p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover/notif:opacity-100 transition-all"><X size={14} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button onClick={() => setDarkMode(!darkMode)} className="p-3 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-2xl transition shadow-md border border-gray-100 dark:border-slate-700/50 active:scale-95">{darkMode ? <Sun size={22} /> : <Moon size={22} />}</button>
+              <button 
+                data-tooltip="Activity Hub"
+                onClick={() => { setRightPanelOpen(!rightPanelOpen); playSound('click'); }} 
+                className={`p-4 rounded-2xl transition-all relative hover:scale-105 active:scale-95 shadow-lg border ${rightPanelOpen ? 'aura-gradient-primary text-white border-transparent' : 'text-indigo-600 bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800'}`}
+              >
+                {unreadMessagesCount + notifications.length > 0 ? <Bell size={20} className="animate-wiggle" /> : <MessageSquare size={20} />}
+                {unreadMessagesCount + notifications.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>}
+              </button>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 hidden md:block"></div>
+              <button onClick={() => setDarkMode(!darkMode)} className="p-4 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition shadow-lg border border-slate-100 dark:border-slate-800 active:scale-95">{darkMode ? <Sun size={20} /> : <Moon size={20} />}</button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar">
-             <div className="max-w-7xl mx-auto space-y-10 pb-20">
+          <div className="flex-1 overflow-y-auto p-6 sm:p-12 custom-scrollbar bg-slate-50/20 dark:bg-slate-900/20">
+             <div className="max-w-7xl mx-auto space-y-12 pb-24">
                {activeTab === 'dashboard' && <DashboardView profile={activeProfile} activities={activities} submissions={submissions} events={events} notifications={notifications} setActiveTab={setActiveTab} users={users} news={news} />}
                {activeTab === 'news' && <NewsView profile={activeProfile} news={news} showToast={showToast} createNotification={createNotification} comments={comments} addOptimistic={addOptimistic} updateOptimistic={updateOptimistic} removeOptimistic={removeOptimistic} replaceOptimistic={replaceOptimistic} />}
                {activeTab === 'forum' && <ForumView profile={activeProfile} users={users} forum={forum} showToast={showToast} createNotification={createNotification} comments={comments} fetchFullRecord={fetchFullRecord} addOptimistic={addOptimistic} updateOptimistic={updateOptimistic} removeOptimistic={removeOptimistic} />}
@@ -643,7 +629,77 @@ export default function App() {
              </div>
           </div>
         </main>
-        
+
+        {/* RIGHT PANEL AURA (ZERO-OVERLAP) */}
+        <aside className={`${rightPanelOpen ? 'translate-x-0 w-96' : 'translate-x-full lg:w-0'} fixed lg:static top-0 right-0 z-50 h-full bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 transition-all duration-500 flex flex-col shadow-2xl overflow-hidden`}>
+            <div className="p-8 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
+                <div>
+                  <h3 className="text-lg font-black tracking-tighter uppercase font-display">Hub de Actividad</h3>
+                  <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1">Sincronizado en tiempo real</p>
+                </div>
+                <button onClick={() => setRightPanelOpen(false)} className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl transition-all">
+                  <X size={20} />
+                </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 w-96">
+                {/* Notifications Mini-Feed */}
+                <section className="space-y-4">
+                   <div className="flex items-center justify-between px-2">
+                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">Notificaciones</h4>
+                     {notifications.length > 0 && <button onClick={handleClearAllNotifications} className="text-[9px] font-black text-rose-500 uppercase hover:underline">Limpiar</button>}
+                   </div>
+                   {notifications.length === 0 ? (
+                      <div className="p-10 aura-card border-dashed border-2 border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center opacity-40">
+                         <Bell size={24} className="mb-2 text-slate-400" />
+                         <p className="text-[10px] uppercase font-black text-slate-500">Todo al día</p>
+                      </div>
+                   ) : (
+                      <div className="space-y-3">
+                         {notifications.slice(0, 5).map(not => (
+                            <div key={not.id} onClick={() => handleNotificationClick(not)} className="p-4 aura-card !rounded-2xl border-transparent bg-slate-50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl cursor-pointer transition-all group">
+                               <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200 leading-snug">{not.message}</p>
+                               <div className="flex items-center justify-between mt-3">
+                                  <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{new Date(not.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteNotification(not.id); }} className="opacity-0 group-hover:opacity-100 text-rose-500 transition-all"><Trash2 size={12} /></button>
+                               </div>
+                            </div>
+                         ))}
+                      </div>
+                   )}
+                </section>
+
+                <div className="h-px bg-slate-100 dark:bg-slate-800 mx-2"></div>
+
+                {/* Presence / Quick Chat Hook */}
+                <section className="space-y-6">
+                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 px-2">Comunidad Online</h4>
+                   <div className="space-y-4">
+                      {users.filter(u => u.id !== profile.id && isUserOnline(u)).slice(0, 6).map(u => (
+                         <div key={u.id} className="flex items-center gap-4 p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all cursor-pointer group" onClick={() => { setActiveTab('chat'); setRightPanelOpen(false); }}>
+                            <div className="relative">
+                               {u.photoURL ? <img src={u.photoURL} alt="P" className="w-10 h-10 rounded-[1.25rem] object-cover shadow-md" /> : <div className="w-10 h-10 rounded-[1.25rem] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-black text-xs uppercase">{u.name?.charAt(0) || '?'}</div>}
+                               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
+                            </div>
+                            <div className="flex-1">
+                               <p className="text-[10px] font-black uppercase tracking-tight text-slate-700 dark:text-slate-200">{u.name}</p>
+                               <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">En Línea</span>
+                            </div>
+                            <MessageCircle size={14} className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-all" />
+                         </div>
+                      ))}
+                      {users.filter(u => u.id !== profile.id && isUserOnline(u)).length === 0 && (
+                         <p className="text-center py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">No hay nadie más conectado</p>
+                      )}
+                   </div>
+                </section>
+
+                <button onClick={() => { setActiveTab('chat'); setRightPanelOpen(false); }} className="w-full py-4 aura-gradient-primary text-white rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.25em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-all">
+                   Abrir Mensajería Completa
+                </button>
+            </div>
+        </aside>
+
         {/* OVERLAYS */}
         {activeQuiz && <QuizPlayer quiz={activeQuiz} profile={profile} showToast={showToast} onFinish={() => setActiveQuiz(null)} />}
         {activeCall && <MeetingOverlay call={activeCall} profile={profile} onClose={() => setActiveCall(null)} />}

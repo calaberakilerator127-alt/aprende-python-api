@@ -75,9 +75,12 @@ CREATE TABLE IF NOT EXISTS materials (
     title TEXT NOT NULL,
     description TEXT,
     file_url TEXT,
+    attached_file TEXT, -- Alias para el frontend
     type TEXT, -- 'pdf', 'video', 'link'
     content_type TEXT, -- Alias para el frontend
-    author_id UUID REFERENCES users(id)
+    content TEXT, -- Contenido enriquecido de ReactQuill
+    author_id UUID REFERENCES users(id),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 6. Mensajes y Chat
@@ -340,3 +343,8 @@ ALTER TABLE grading_configs ADD CONSTRAINT grading_configs_teacher_id_key UNIQUE
 ALTER TABLE activities ADD COLUMN IF NOT EXISTS manual_access TEXT DEFAULT 'false'; -- Cambiado a TEXT porque el log muestra que se envía 'auto'
 CREATE INDEX IF NOT EXISTS idx_submissions_activity ON submissions(activity_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+
+-- Migraciones para tabla Materials
+ALTER TABLE materials ADD COLUMN IF NOT EXISTS content TEXT;
+ALTER TABLE materials ADD COLUMN IF NOT EXISTS attached_file TEXT;
+ALTER TABLE materials ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
