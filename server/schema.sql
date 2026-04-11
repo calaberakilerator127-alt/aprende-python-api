@@ -181,7 +181,9 @@ CREATE TABLE IF NOT EXISTS news (
     title TEXT NOT NULL,
     content TEXT,
     author_id UUID REFERENCES users(id),
-    category TEXT
+    category TEXT,
+    likes UUID[] DEFAULT '{}',
+    dislikes UUID[] DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS changelog (
@@ -202,7 +204,9 @@ CREATE TABLE IF NOT EXISTS forum (
     author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     author_name TEXT,
     category TEXT,
-    is_pinned BOOLEAN DEFAULT FALSE
+    is_pinned BOOLEAN DEFAULT FALSE,
+    likes UUID[] DEFAULT '{}',
+    dislikes UUID[] DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS comments (
@@ -319,8 +323,8 @@ ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id UUID;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_type TEXT; -- 'news', 'forum', 'activity', etc.
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_name TEXT;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_photo TEXT;
-ALTER TABLE comments ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
-ALTER TABLE comments ADD COLUMN IF NOT EXISTS dislikes INTEGER DEFAULT 0;
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS likes UUID[] DEFAULT '{}';
+ALTER TABLE comments ADD COLUMN IF NOT EXISTS dislikes UUID[] DEFAULT '{}';
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS reply_to_id UUID;
 
 -- Feedback

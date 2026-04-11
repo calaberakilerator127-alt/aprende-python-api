@@ -203,7 +203,7 @@ export default function ActivitiesView({ type, profile, activities, submissions,
   };
 
   const updateQuestion = (id, field, value) => {
-    setQuestions(questions.map(q => {
+    setQuestions((questions || []).map(q => {
       if (q.id === id) {
         if (field === 'type' && value === 'true_false') {
           return { ...q, type: value, options: ['Verdadero', 'Falso'], correct: 0 };
@@ -599,7 +599,7 @@ export default function ActivitiesView({ type, profile, activities, submissions,
                         return (
                           <button key={student.id} type="button" onClick={() => toggleStudent(student.id)} className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all ${isSelected ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20' : 'border-transparent bg-white dark:bg-slate-800'}`}>
                             <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-black uppercase overflow-hidden shrink-0">
-                                {student.photoURL ? <img src={student.photoURL} className="w-full h-full object-cover" /> : student.name?.charAt(0)}
+                                {student.photoURL ? <img src={student.photoURL} className="w-full h-full object-cover" /> : (student.name?.charAt(0) || '?')}
                             </div>
                             <div className="text-left min-w-0">
                               <p className="text-[10px] font-bold truncate leading-tight">{student.name}</p>

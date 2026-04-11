@@ -243,7 +243,7 @@ export default function AdminPanelView({
                   {filteredUsers.map(user => (
                     <div key={user.id} className="p-6 bg-white dark:bg-slate-800/50 rounded-[2rem] border border-gray-50 dark:border-slate-700/50 hover:shadow-xl transition-all group relative">
                        <div className="flex items-center gap-4 mb-4">
-                          {user.photoURL || user.photo_url ? <img src={user.photoURL || user.photo_url} className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black">{user.name?.charAt(0)}</div>}
+                          {user.photoURL || user.photo_url ? <img src={user.photoURL || user.photo_url} className="w-12 h-12 rounded-2xl object-cover" /> : <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-black">{(user.name?.charAt(0) || '?')}</div>}
                           <div className="flex-1 overflow-hidden">
                              <h3 className="text-sm font-black text-gray-900 dark:text-white truncate">{user.name}</h3>
                              <p className="text-[10px] text-gray-400 font-bold truncate">{user.email}</p>
