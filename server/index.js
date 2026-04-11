@@ -13,6 +13,9 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 10000;
 
+// Enable trust proxy for Render/Vercel (fixes https/http protocol issues)
+app.set('trust proxy', true);
+
 // --- CONFIGURACIÓN DE MIDDLEWARES ---
 
 // Lista de orígenes permitidos (vía env var o defaults)
@@ -246,8 +249,39 @@ app.get('/api/data/:table', async (req, res) => {
     const result = await db.query(query);
     res.json(result.rows);
   } catch (err) {
-    console.error(`Error en GET /api/data/${table}:`, err.message);
-    res.status(500).json({ error: err.message });
+    console.error(`[DATABASE ERROR] GET /api/data/${table}:`, {
+      message: err.message,
+      stack: err.stack,
+      table
+    });
+    res.status(500).json({ 
+      error: true, 
+      message: `Error al obtener datos de ${table}: ${err.message}`,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+  }
+});
+
+// GET - Obtener un registro específico por ID
+app.get('/api/data/:table/:id', async (req, res) => {
+  const { table, id } = req.params;
+  
+  if (!ALLOWED_TABLES.includes(table)) {
+    return res.status(403).json({ error: 'Tabla no permitida' });
+  }
+
+  try {
+    const query = `SELECT * FROM "${table}" WHERE id = $1`;
+    const { rows } = await db.query(query, [id]);
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: `Registro no encontrado en ${table}` });
+    }
+    
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(`[DATABASE ERROR] GET /api/data/${table}/${id}:`, err.message);
+    res.status(500).json({ error: `Error al obtener registro: ${err.message}` });
   }
 });
 
@@ -378,7 +412,8 @@ app.delete('/api/data/:table/:id', auth.verifyToken, async (req, res) => {
 app.post('/api/upload', auth.verifyToken, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
   
-  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  const protocol = req.get('x-forwarded-proto') || req.protocol;
+  const fileUrl = `${protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   res.json({
     url: fileUrl,
     filename: req.file.filename,

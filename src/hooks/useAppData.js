@@ -64,7 +64,11 @@ export function useAppData(user) {
             setter(mappedData);
           }
         } catch (e) {
-          console.error(`Error cargando tabla ${table}:`, e);
+          console.error(`[API ERROR] Error cargando tabla ${table}:`, {
+            status: e.response?.status,
+            message: e.response?.data?.message || e.message,
+            details: e.response?.data?.details
+          });
         }
       };
 
@@ -138,17 +142,24 @@ export function useAppData(user) {
    */
   const fetchFullRecord = async (table, id) => {
     try {
-      const { data } = await api.get(`/data/${table}`); // En un backend real, haríamos GET /data/:table/:id
-      // Por ahora filtramos del listado o cargamos todo (optimizable)
-      const record = data.find(item => item.id === id);
+      const { data: record } = await api.get(`/data/${table}/${id}`);
       
       const setter = getSetter(table);
       if (setter && record) {
-        setter(prev => prev.map(item => item.id === id ? record : item));
+        setter(prev => {
+          const exists = prev.some(item => item.id === id);
+          if (exists) {
+            return prev.map(item => item.id === id ? record : item);
+          }
+          return [record, ...prev];
+        });
       }
       return record;
     } catch (err) {
-      console.error(`Error hidratando registro de ${table}:`, err);
+      console.error(`[API ERROR] Error hidratando registro de ${table}/${id}:`, {
+        status: err.response?.status,
+        message: err.response?.data?.message || err.message
+      });
       return null;
     }
   };
