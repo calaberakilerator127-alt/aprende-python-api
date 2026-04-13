@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
-require('dotenv').config({ path: '../.env.server' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env.server') });
 
 const isProduction = process.env.NODE_ENV === 'production';
 

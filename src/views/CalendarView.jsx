@@ -104,7 +104,7 @@ export default function CalendarView({ profile, events, users, showToast, create
       showToast('Selecciona al menos un estudiante o elige "Todos"', 'error');
       return;
     }
-    const finalAssignedTo = assignMode === 'all' ? ['all'] : selectedStudents;
+    const finalAssignedTo = assignMode === 'all' ? [] : selectedStudents;
     
     const eventData = {
       title, date, end_date: endDate || null, description: description || null, link,
@@ -162,7 +162,7 @@ export default function CalendarView({ profile, events, users, showToast, create
   };
 
   const handleToggleAttendance = async (eventId, studentId, isPresent) => {
-    const tempAtt = { event_id: eventId, student_id: studentId, is_present: isPresent, updated_at: Date.now() };
+    const tempAtt = { event_id: eventId, user_id: studentId, is_present: isPresent, updated_at: Date.now() };
     updateOptimistic('attendance', `${eventId}_${studentId}`, tempAtt);
 
     try {
@@ -194,7 +194,7 @@ export default function CalendarView({ profile, events, users, showToast, create
   const myEvents = useMemo(() => (events || []).filter(e => {
     if (isTeacher) return true;
     const assigned = e.assigned_to || e.assignedTo;
-    return assigned?.includes('all') || assigned?.includes(profile.id);
+    return (assigned?.length === 0 || assigned?.includes('all')) || assigned?.includes(profile.id);
   }), [events, profile.id, isTeacher]);
 
   const studentCount = useMemo(() => (users || []).filter(u => u.role === 'estudiante').length, [users]);

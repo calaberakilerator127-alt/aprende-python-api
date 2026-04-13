@@ -139,7 +139,13 @@ export function useAppAuth() {
     // Los demás métodos se implementarán conforme se creen los endpoints en la API
     updateProfileData: async (d) => { 
       try {
-        const { data } = await api.put(`/data/profiles/${profile.id}`, d);
+        // Map common fields to snake_case for the database
+        const mappedData = { ...d };
+        if (mappedData.photoURL) {
+          mappedData.photo_url = mappedData.photoURL;
+          delete mappedData.photoURL;
+        }
+        const { data } = await api.put(`/data/profiles/${profile.id}`, mappedData);
         setProfile(data);
         localStorage.setItem('pm_auth_profile', JSON.stringify(data));
         return true;

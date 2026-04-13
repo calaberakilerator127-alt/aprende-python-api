@@ -217,6 +217,24 @@ const ALLOWED_TABLES = [
   'messages', 'activities', 'submissions', 'materials', 'notifications', 'groups'
 ];
 
+// --- UTILIDADES ---
+const COLUMNS_CACHE = {};
+async function getTableColumns(table) {
+  if (COLUMNS_CACHE[table]) return COLUMNS_CACHE[table];
+  try {
+    const { rows } = await db.query(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = $1",
+      [table]
+    );
+    const columns = rows.map(r => r.column_name);
+    if (columns.length > 0) COLUMNS_CACHE[table] = columns;
+    return columns;
+  } catch (err) {
+    console.error(`Error fetching columns for ${table}:`, err);
+    return [];
+  }
+}
+
 // Ayudante para emitir cambios vía Sockets
 const broadcastChange = (table, eventType, data, oldData = null) => {
   io.emit('db_change', {
@@ -302,15 +320,27 @@ app.post('/api/data/:table', auth.verifyToken, async (req, res) => {
     }
   }
 
-  const body = { ...req.body };
-  
-  // Si no hay created_at, lo omitimos para que la DB use el DEFAULT
-  const keys = Object.keys(body);
-  const values = Object.values(body);
+  // Filtrar campos para que solo se inserten los que existen en la DB
+  const validColumns = await getTableColumns(table);
+  let body = { ...req.body };
+
+  // Fallback para campos comunes con diferentes nombres
+  if (table === 'attendance' && body.student_id && !validColumns.includes('student_id')) {
+    body.user_id = body.student_id;
+  }
+  if (table === 'feedback' && body.author_id && !validColumns.includes('author_id')) {
+    body.user_id = body.author_id;
+  }
+
+  // Filtrado final
+  const keys = Object.keys(body).filter(k => validColumns.length === 0 || validColumns.includes(k));
+  if (keys.length === 0) return res.status(400).json({ error: 'No hay campos válidos para la tabla ' + table });
+
+  const values = keys.map(k => body[k]);
   const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
 
   try {
-    let query = `INSERT INTO "${table}" (${keys.join(', ')}) VALUES (${placeholders})`;
+    let query = `INSERT INTO "${table}" (${keys.map(k => `"${k}"`).join(', ')}) VALUES (${placeholders})`;
     
     // Si la tabla es 'grading_configs', hacemos UPSERT por teacher_id
     if (table === 'grading_configs') {
@@ -340,9 +370,12 @@ app.put('/api/data/:table/:id', auth.verifyToken, async (req, res) => {
   const { table, id } = req.params;
   if (!ALLOWED_TABLES.includes(table)) return res.status(403).json({ error: 'Tabla no permitida' });
 
-  const keys = Object.keys(req.body);
-  const values = Object.values(req.body);
-  const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+  const validColumns = await getTableColumns(table);
+  const keys = Object.keys(req.body).filter(k => validColumns.length === 0 || validColumns.includes(k));
+  if (keys.length === 0) return res.status(400).json({ error: 'No hay campos válidos para actualizar' });
+
+  const values = keys.map(k => req.body[k]);
+  const setClause = keys.map((key, i) => `"${key}" = $${i + 1}`).join(', ');
 
   try {
     const query = `UPDATE ${table} SET ${setClause} WHERE id = $${keys.length + 1} RETURNING *`;

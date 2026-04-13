@@ -117,7 +117,9 @@ export function useAppData(user) {
         htmlContent: rec.html_content || rec.htmlContent,
         targetId: rec.target_id || rec.targetId,
         targetType: rec.target_type || rec.targetType,
-        parentId: rec.parent_id || rec.parentId
+        parentId: rec.parent_id || rec.parentId,
+        manualAccess: rec.manual_access || rec.manualAccess,
+        evalMethod: rec.eval_method || rec.evalMethod
       }) : null;
 
       setter(prev => {

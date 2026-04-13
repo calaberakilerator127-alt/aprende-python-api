@@ -124,7 +124,7 @@ export default function MaterialsView({ profile, materials, showToast, createNot
         content: contentType === 'html' ? richContent : '',
         attached_file: finalFile,
         author_id: profile.id,
-        updated_at: Date.now()
+        updated_at: new Date().toISOString()
       };
 
       if (editingMaterial) {

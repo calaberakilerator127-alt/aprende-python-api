@@ -31,6 +31,7 @@ export default function ClassSettingsView({ profile, gradingConfigs, playSound, 
     setSaveStatus(null);
     const configData = {
       teacher_id: profile.id,
+      category: 'general',
       weights: weights,
       grade_scale: Number(globalScale),
       attendance_weight: Number(attWeight),

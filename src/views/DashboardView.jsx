@@ -46,6 +46,17 @@ export default function DashboardView({
   const studentCount = (users || []).filter(u => u.role === 'estudiante').length;
   const latestNews = [...(news || [])].sort((a, b) => b.createdAt - a.createdAt).slice(0, 2);
 
+  const handleNotifClick = (n) => {
+    const type = n.type || '';
+    if (type.includes('meeting') || type.includes('calendario') || type.includes('event')) setActiveTab('calendar');
+    else if (type.includes('tarea') || type.includes('entregas') || type.includes('evaluacion')) setActiveTab('activities');
+    else if (type.includes('material')) setActiveTab('materiales');
+    else if (type.includes('news')) setActiveTab('news');
+    else if (type.includes('forum')) setActiveTab('forum');
+    else if (type.includes('profile')) setActiveTab('profile');
+    else setActiveTab('activities');
+  };
+
   return (
     <div className="space-y-12 animate-fade-in pb-16">
       {/* Header Welcome Card */}
@@ -166,7 +177,7 @@ export default function DashboardView({
           <div className="space-y-6">
             {latestNews.length > 0 ? (
               latestNews.map(item => (
-                <div key={item.id} className="aura-card p-8 group hover:-translate-y-1 transition-all">
+                <div key={item.id} onClick={() => setActiveTab('news')} className="aura-card p-8 group hover:-translate-y-1 transition-all cursor-pointer">
                    <div className="flex items-center justify-between mb-4">
                       <span className="text-[9px] font-black bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-widest">Global Announcement</span>
                       <span className="text-[10px] font-black text-slate-400 uppercase">{new Date(item.createdAt).toLocaleDateString()}</span>
@@ -226,7 +237,7 @@ export default function DashboardView({
            {myNotifications.length > 0 ? (
              <div className="divide-y dark:divide-slate-800">
                {myNotifications.slice(0, 5).map(n => (
-                 <div key={n.id} className="py-6 flex items-center justify-between group cursor-pointer hover:px-4 transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl">
+                 <div key={n.id} onClick={() => handleNotifClick(n)} className="py-6 flex items-center justify-between group cursor-pointer hover:px-4 transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-2xl">
                     <div className="flex items-center gap-6">
                        <div className="p-3 bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-xl shadow-sm text-indigo-500 group-hover:aura-gradient-primary group-hover:text-white transition-all">
                           {n.type === 'meeting' ? <Video size={18}/> : n.type === 'news' ? <Bell size={18}/> : <FileText size={18}/>}

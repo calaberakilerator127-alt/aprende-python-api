@@ -81,13 +81,13 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
       title,
       content,
       category,
-      status: 'no solucionado',
-      author_id: profile.id,
+      status: 'pendiente',
+      user_id: profile.id,
       author_name: profile.name,
       author_photo: profile.photo_url || '',
       created_at: nowISO,
       likes: [],
-      attachments
+      attachments: attachments || []
     };
 
     const tempId = `temp-fb-${Date.now()}`;
@@ -115,7 +115,7 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
     updateOptimistic('feedback', report.id, { likes: newLikes });
 
     try {
-      await api.put(`/data/feedback/${report.id}/like`, { likes: newLikes });
+      await api.put(`/data/feedback/${report.id}`, { likes: newLikes });
     } catch (e) { console.error(e); }
   };
 
@@ -184,7 +184,7 @@ export default function FeedbackView({ profile, feedback = [], users = [], showT
     if (selectedReport?.id === report.id) setSelectedReport({ ...selectedReport, status: newStatus });
 
     try {
-      await api.put(`/data/feedback/${report.id}/status`, { status: newStatus });
+      await api.put(`/data/feedback/${report.id}`, { status: newStatus });
       await logAdminAction(profile, 'update_status', report.id, { status: report.status }, { status: newStatus });
       showToast(language === 'es' ? `Reporte marcado como ${newStatus}` : `Report marked as ${newStatus}`);
     } catch (e) { console.error(e); }
