@@ -32,12 +32,16 @@ export default function CommentsSection({ parentId, parentType, profile, comment
   };
 
   const rootComments = comments
-    .filter(c => c.parent_id === parentId && c.parent_type === parentType && !c.reply_to_id)
+    .filter(c => 
+      (c.targetId === parentId || c.target_id === parentId || c.parent_id_entity === parentId) && 
+      (c.targetType === parentType || c.target_type === parentType || c.parent_type === parentType) && 
+      (!c.parentId && !c.parent_id && !c.reply_to_id)
+    )
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
   const getReplies = (commentId) => {
     return comments
-      .filter(c => c.reply_to_id === commentId)
+      .filter(c => c.parentId === commentId || c.parent_id === commentId || c.reply_to_id === commentId)
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   };
 
@@ -49,15 +53,15 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     const tempId = `temp-${Date.now()}`;
     const commentData = {
       id: tempId,
-      parent_id: parentId, 
-      parent_type: parentType, 
+      target_id: parentId, 
+      target_type: parentType, 
       content: newComment,
       author_id: profile.id, 
       author_name: profile.name,
       created_at: nowISO, 
       likes: [], 
       dislikes: [], 
-      reply_to_id: null,
+      parent_id: null,
       is_optimistic: true
     };
 
@@ -71,15 +75,15 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     try {
       setNewComment(''); // Limpiar input de inmediato para Ultra Speed
       await api.post('/data/comments', {
-        parent_id: parentId, 
-        parent_type: parentType, 
+        target_id: parentId, 
+        target_type: parentType, 
         content: newComment,
         author_id: profile.id, 
         author_name: profile.name,
         created_at: nowISO, 
         likes: [], 
         dislikes: [], 
-        reply_to_id: null
+        parent_id: null
       });
     } catch (e) { 
       console.error(e); 
@@ -96,15 +100,15 @@ export default function CommentsSection({ parentId, parentType, profile, comment
     setIsSubmitting(true);
     try {
       await api.post('/data/comments', {
-        parent_id: parentId, 
-        parent_type: parentType, 
+        target_id: parentId, 
+        target_type: parentType, 
         content: replyText,
         author_id: profile.id, 
         author_name: profile.name,
         created_at: new Date().toISOString(), 
         likes: [], 
         dislikes: [], 
-        reply_to_id: commentId
+        parent_id: commentId
       });
       setReplyingTo(null);
       setReplyText('');
@@ -248,7 +252,7 @@ export default function CommentsSection({ parentId, parentType, profile, comment
        <div className="flex items-center justify-between mb-8">
           <h4 className="font-black text-base flex items-center gap-3 text-gray-900 dark:text-gray-100 uppercase tracking-tighter">
              <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl text-indigo-600"><MessageCircle size={18} /></div>
-             {t.title} <span className="text-gray-400 ml-1">({comments.filter(c => c.parent_id === parentId).length})</span>
+             {t.title} <span className="text-gray-400 ml-1">({comments.filter(c => (c.targetId === parentId || c.target_id === parentId || c.parent_id_entity === parentId)).length})</span>
           </h4>
        </div>
        

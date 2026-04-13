@@ -59,7 +59,10 @@ export function useAppData(user) {
               studentId: item.student_id || item.studentId,
               eventId: item.event_id || item.eventId,
               assignedTo: item.assigned_to || item.assignedTo,
-              htmlContent: item.html_content || item.htmlContent
+              htmlContent: item.html_content || item.htmlContent,
+              targetId: item.target_id || item.targetId,
+              targetType: item.target_type || item.targetType,
+              parentId: item.parent_id || item.parentId
             }));
             setter(mappedData);
           }
@@ -111,7 +114,10 @@ export function useAppData(user) {
         studentId: rec.student_id || rec.studentId,
         eventId: rec.event_id || rec.eventId,
         assignedTo: rec.assigned_to || rec.assignedTo,
-        htmlContent: rec.html_content || rec.htmlContent
+        htmlContent: rec.html_content || rec.htmlContent,
+        targetId: rec.target_id || rec.targetId,
+        targetType: rec.target_type || rec.targetType,
+        parentId: rec.parent_id || rec.parentId
       }) : null;
 
       setter(prev => {
